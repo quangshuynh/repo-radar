@@ -112,6 +112,7 @@ def test_starred_request_uses_endpoint_authentication_and_pagination(monkeypatch
     assert parse_qs(urlparse(requests[0].full_url).query) == {"per_page": ["100"], "page": ["1"]}
     assert requests[0].get_header("Authorization") == "Bearer test-token"
     assert requests[0].get_header("Accept") == "application/vnd.github+json"
+    assert requests[0].get_header("X-github-api-version") == "2026-03-10"
     assert repositories[-1].full_name == "owner/repository-100"
     assert repositories[-1].stars == 100
 
@@ -166,3 +167,4 @@ def test_star_repository_uses_authenticated_put_request(monkeypatch) -> None:
     assert urlparse(requests[0].full_url).path == "/user/starred/owner/repository"
     assert requests[0].get_header("Authorization") == "Bearer test-token"
     assert requests[0].get_header("Content-length") == "0"
+    assert requests[0].get_header("X-github-api-version") == "2026-03-10"

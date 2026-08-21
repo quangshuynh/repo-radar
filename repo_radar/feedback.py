@@ -39,3 +39,24 @@ def record_feedback(
         remaining = [item for item in interested if item.full_name.lower() != repository.lower()]
         if len(remaining) != len(interested):
             storage.save_interested_repositories(remaining)
+
+
+def reconcile_starred_repositories(storage: Storage, starred: list[Repository]) -> int:
+    """
+    remove newly starred repositories from the local interested list
+    :param storage: local storage manager
+    :param starred: repositories returned by GitHub starred synchronization
+    :returns: number of interested repositories reconciled
+    """
+    starred_names = {repository.full_name.lower() for repository in starred}
+    interested = storage.load_interested_repositories()
+    reconciled = [repository for repository in interested if repository.full_name.lower() in starred_names]
+    if not reconciled:
+        return 0
+    remaining = [repository for repository in interested if repository.full_name.lower() not in starred_names]
+    storage.save_interested_repositories(remaining)
+    feedback = storage.load_feedback()
+    for repository in reconciled:
+        feedback[repository.full_name] = "starred"
+    storage.save_feedback(feedback)
+    return len(reconciled)

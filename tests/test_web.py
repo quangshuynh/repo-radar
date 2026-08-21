@@ -210,3 +210,39 @@ def test_star_all_saved_repositories_updates_each_confirmed_star(tmp_path, monke
     assert starred == ["one/tool", "two/tool"]
     assert storage.load_interested_repositories() == []
     assert {repository.full_name for repository in storage.load_repositories()} == {"one/tool", "two/tool"}
+
+
+def test_web_sync_removes_externally_starred_saved_repository(tmp_path, monkeypatch) -> None:
+    """
+    web synchronization reconciles saved repositories starred outside the app
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+    storage = Storage(tmp_path)
+    storage.save_interested_repositories([Repository("owner/tool"), Repository("owner/keep")])
+    storage.save_feedback({"owner/tool": "interested", "owner/keep": "interested"})
+
+    class FakeGitHubClient:
+        """mock GitHub client for web synchronization"""
+
+        def get_authenticated_user(self) -> str:
+            """
+            return the mocked authenticated user
+            :returns: authenticated user login
+            """
+            return "example"
+
+        def get_starred_repositories(self) -> list[Repository]:
+            """
+            return a repository starred outside Repo Radar
+            :returns: synchronized starred repositories
+            """
+            return [Repository("owner/tool")]
+
+    monkeypatch.setattr("repo_radar.web.GitHubClient", FakeGitHubClient)
+    response = TestClient(app).post("/api/sync")
+    assert response.json()["reconciled_count"] == 1
+    assert storage.load_interested_repositories() == [Repository("owner/keep")]
+    assert storage.load_feedback() == {"owner/keep": "interested", "owner/tool": "starred"}

@@ -65,8 +65,14 @@ def test_sync_persists_successful_starred_response(tmp_path, monkeypatch, capsys
     :returns: nothing
     """
     storage = Storage(tmp_path)
+    storage.save_interested_repositories(
+        [Repository("owner/new", owner="owner"), Repository("owner/keep", owner="owner")]
+    )
+    storage.save_feedback({"owner/new": "interested", "owner/keep": "interested"})
     monkeypatch.setattr("repo_radar.cli.GitHubClient", SuccessfulStarredClient)
 
     assert run_sync(storage) == 0
     assert [repository.full_name for repository in storage.load_repositories()] == ["owner/new"]
+    assert [repository.full_name for repository in storage.load_interested_repositories()] == ["owner/keep"]
+    assert storage.load_feedback() == {"owner/keep": "interested", "owner/new": "starred"}
     assert "Cached 1 starred repositories for expected-user" in capsys.readouterr().out

@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .discovery import generate_recommendations
-from .feedback import record_feedback
+from .feedback import reconcile_starred_repositories, record_feedback
 from .github_client import GitHubClient, GitHubError
 from .gitprofilelens import GitProfileLensError, import_profile
 from .models import Recommendation, Repository, SeedPreferences
@@ -345,9 +345,15 @@ def create_app() -> FastAPI:
             repositories = client.get_starred_repositories()
             storage = _storage()
             storage.save_repositories(repositories)
+            reconciled_count = reconcile_starred_repositories(storage, repositories)
             last_sync = datetime.now(timezone.utc).isoformat()
             storage.save_status({"authenticated_user": owner, "last_sync": last_sync})
-            return {"authenticated_user": owner, "starred_count": len(repositories), "last_sync": last_sync}
+            return {
+                "authenticated_user": owner,
+                "starred_count": len(repositories),
+                "reconciled_count": reconciled_count,
+                "last_sync": last_sync,
+            }
         except (GitHubError, RuntimeError, ValueError) as error:
             raise HTTPException(status_code=502, detail=_safe_error(error)) from error
 

@@ -143,11 +143,13 @@ input:focus { border-color: var(--terracotta); box-shadow: 0 0 0 3px rgb(189 91 
 .actions .negative { border-color: #7e4c42; background: #3a211d; color: #e1a195; }
 .actions .blocked { border-color: #765563; background: #34242b; color: #d1a7b7; }
 .actions .star-action, .star-action { border-color: #9b722a; background: #493619; color: #f1c978; }
+.card-message { flex-basis: 100%; margin: .65rem 0 0; padding: .6rem .7rem; border-radius: 8px; background: #293222; color: #b9c99c; font-size: .8rem; line-height: 1.4; }
+.card-message.error { background: #3a211d; color: #efa99d; }
 .saved-list { display: grid; gap: .65rem; }
-.saved-repository { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem 1rem; border: 1px solid #4f372d; border-radius: 12px; background: #1c1411; }
+.saved-repository { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem 1rem; border: 1px solid #4f372d; border-radius: 12px; background: #1c1411; }
 .saved-repository { position: relative; padding-right: 3.25rem; }
 .saved-repository p { margin: .3rem 0 0; }
-.saved-repository > div { min-width: 0; }
+.saved-repository > div { flex: 1 1 240px; min-width: 0; }
 .saved-repository > div > a { font-weight: 750; overflow-wrap: anywhere; }
 .saved-repository button { flex: 0 0 auto; }
 .saved-repository .saved-remove { position: absolute; top: .55rem; right: .55rem; display: grid; width: 1.8rem; height: 1.8rem; padding: 0; place-items: center; border-color: transparent; background: transparent; color: var(--muted); box-shadow: none; font-size: 1.25rem; line-height: 1; }

@@ -8,7 +8,7 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 
 from .discovery import generate_recommendations
-from .feedback import record_feedback
+from .feedback import reconcile_starred_repositories, record_feedback
 from .github_client import GitHubClient, GitHubError
 from .gitprofilelens import GitProfileLensError, import_profile
 from .models import ImportedProfile, PreferenceProfile, Recommendation, SeedPreferences
@@ -172,6 +172,7 @@ def run_sync(storage: Storage) -> int:
     owner = client.get_authenticated_user()
     repositories = client.get_starred_repositories()
     storage.save_repositories(repositories)
+    reconcile_starred_repositories(storage, repositories)
     storage.save_status({"authenticated_user": owner, "last_sync": datetime.now(timezone.utc).isoformat()})
     print(f"Cached {len(repositories)} starred repositories for {owner}")
     return 0

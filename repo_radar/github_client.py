@@ -53,7 +53,7 @@ class GitHubClient:
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {self.token}",
             "User-Agent": "repo-radar/0.1",
-            "X-GitHub-Api-Version": "2022-11-28",
+            "X-GitHub-Api-Version": "2026-03-10",
         }
         if method == "PUT":
             headers["Content-Length"] = "0"

@@ -38,6 +38,26 @@ function showImportMessage(text, error = false) {
 }
 
 /**
+ * displays action feedback inside a repository card
+ * @param {HTMLElement} card repository card or row
+ * @param {string} text message text
+ * @param {boolean} error whether the message represents an error
+ * @returns {void} no return value
+ */
+function showCardMessage(card, text, error = false) {
+  let cardMessage = card.querySelector(".card-message");
+  if (!cardMessage) {
+    cardMessage = document.createElement("p");
+    cardMessage.className = "card-message";
+    cardMessage.setAttribute("role", "status");
+    cardMessage.setAttribute("aria-live", "polite");
+    card.appendChild(cardMessage);
+  }
+  cardMessage.textContent = text;
+  cardMessage.classList.toggle("error", error);
+}
+
+/**
  * converts comma separated text into values
  * @param {string} value comma separated input
  * @returns {Array<string>} cleaned values
@@ -382,6 +402,7 @@ async function submitFeedback(repository, classification, card) {
 async function starRepository(repository, card, button) {
   button.disabled = true;
   button.textContent = "Starring...";
+  showCardMessage(card, "Asking GitHub to add this star...");
   try {
     await api("/api/star", { method: "POST", body: JSON.stringify(repositoryPayload(repository)) });
     await Promise.all([loadStatus(), loadProfile(), loadInterested()]);
@@ -390,7 +411,7 @@ async function starRepository(repository, card, button) {
   } catch (error) {
     button.disabled = false;
     button.textContent = "Star on GitHub";
-    throw error;
+    showCardMessage(card, error.message, true);
   }
 }
 
@@ -411,8 +432,11 @@ async function handle(action, success = "") {
 
 document.querySelector("#sync").addEventListener("click", () => handle(async () => {
   const result = await api("/api/sync", { method: "POST" });
-  await Promise.all([loadStatus(), loadProfile()]);
-  showMessage(`Cached ${result.starred_count} starred repositories`);
+  await Promise.all([loadStatus(), loadProfile(), loadInterested()]);
+  const reconciled = result.reconciled_count
+    ? ` and removed ${result.reconciled_count} matching repositories from saved`
+    : "";
+  showMessage(`Cached ${result.starred_count} starred repositories${reconciled}`);
 }));
 refreshButton.addEventListener("click", () => handle(loadRecommendations));
 document.querySelector("#reload-profile").addEventListener("click", () => handle(loadProfile));
