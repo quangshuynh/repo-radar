@@ -94,3 +94,21 @@ def test_imported_profile_combines_with_stars_and_seeds() -> None:
     assert profile.topics["automation"] == 1.0
     assert profile.topics["backend"] == 0.6
     assert profile.keywords["api"] > profile.keywords["cli"]
+
+
+def test_interested_repositories_contribute_without_double_counting_stars() -> None:
+    """
+    interested repositories shape the profile unless already starred
+    :returns: nothing
+    """
+    interested = [
+        Repository("saved/tool", "Rust terminal utility", "Rust", ["terminal"]),
+        Repository("starred/repo", language="Go", topics=["duplicate"]),
+    ]
+    profile = build_profile(
+        [Repository("starred/repo", language="Python", topics=["automation"])],
+        interested_repositories=interested,
+    )
+    assert profile.languages == {"Python": 1.0, "Rust": 0.7}
+    assert profile.topics == {"automation": 1.0, "terminal": 0.7}
+    assert "Go" not in profile.languages

@@ -12,6 +12,7 @@ STARRED_REPOSITORY_WEIGHT = 1.0
 PINNED_REPOSITORY_WEIGHT = 0.8
 OWNED_REPOSITORY_WEIGHT = 0.35
 SEED_SIGNAL_WEIGHT = 0.6
+INTERESTED_REPOSITORY_WEIGHT = 0.7
 
 STOP_WORDS = {
     "a",
@@ -67,12 +68,14 @@ def build_profile(
     repositories: list[Repository],
     seed_preferences: SeedPreferences | None = None,
     imported_profile: ImportedProfile | None = None,
+    interested_repositories: list[Repository] | None = None,
 ) -> PreferenceProfile:
     """
     build a normalized profile from starred repositories and manual preferences
     :param repositories: repositories used as positive preferences
     :param seed_preferences: optional manually entered interests
     :param imported_profile: optional GitProfileLens public repository profile
+    :param interested_repositories: optional repositories marked as interesting
     :returns: calculated preference profile
     """
     languages: Counter[str] = Counter()
@@ -91,6 +94,14 @@ def build_profile(
             languages[repository.language] += weight
         topics.update({topic.lower(): weight for topic in repository.topics})
         keywords.update({word: weight for word in set(extract_keywords(repository.description))})
+    starred_names = {repository.full_name.lower() for repository in repositories}
+    for repository in interested_repositories or []:
+        if repository.full_name.lower() in starred_names:
+            continue
+        if repository.language:
+            languages[repository.language] += INTERESTED_REPOSITORY_WEIGHT
+        topics.update({topic.lower(): INTERESTED_REPOSITORY_WEIGHT for topic in repository.topics})
+        keywords.update({word: INTERESTED_REPOSITORY_WEIGHT for word in set(extract_keywords(repository.description))})
     seeds = seed_preferences or SeedPreferences()
     languages.update({language: SEED_SIGNAL_WEIGHT for language in seeds.languages})
     topics.update({topic.lower(): SEED_SIGNAL_WEIGHT for topic in seeds.topics})

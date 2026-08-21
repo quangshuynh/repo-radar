@@ -26,6 +26,18 @@ function showMessage(text, error = false) {
 }
 
 /**
+ * displays GitProfileLens import feedback inside the preferences card
+ * @param {string} text message text
+ * @param {boolean} error whether the message represents an error
+ * @returns {void} no return value
+ */
+function showImportMessage(text, error = false) {
+  const importMessage = document.querySelector("#import-message");
+  importMessage.textContent = text;
+  importMessage.classList.toggle("error", error);
+}
+
+/**
  * converts comma separated text into values
  * @param {string} value comma separated input
  * @returns {Array<string>} cleaned values
@@ -130,15 +142,81 @@ function recommendationCard(repository) {
     topics.appendChild(topic);
   }
   actions.className = "actions";
-  for (const classification of ["interested", "not interested", "starred", "blocked"]) {
+  for (const classification of ["interested", "not interested", "blocked"]) {
     const button = document.createElement("button");
-    button.textContent = classification;
+    button.textContent = classification === "not interested" ? "Not for me" : classification;
     button.className = classification === "interested" ? "positive" : classification === "blocked" ? "blocked" : "negative";
-    button.addEventListener("click", () => submitFeedback(repository.full_name, classification, card));
+    button.addEventListener("click", () => handle(() => submitFeedback(repository, classification, card)));
     actions.appendChild(button);
   }
+  const starButton = document.createElement("button");
+  starButton.className = "star-action";
+  starButton.textContent = "Star on GitHub";
+  starButton.addEventListener("click", () => handle(() => starRepository(repository, card, starButton)));
+  actions.appendChild(starButton);
   card.append(head, description, meta, why, topics, actions);
   return card;
+}
+
+/**
+ * creates a request payload from repository metadata
+ * @param {object} repository repository metadata
+ * @returns {object} repository action payload
+ */
+function repositoryPayload(repository) {
+  return {
+    repository: repository.full_name,
+    description: repository.description,
+    language: repository.language,
+    topics: repository.topics,
+    stars: repository.stars,
+    url: repository.url,
+  };
+}
+
+/**
+ * creates one saved repository row
+ * @param {object} repository saved repository metadata
+ * @returns {HTMLElement} saved repository row
+ */
+function savedRepository(repository) {
+  const row = document.createElement("article");
+  const content = document.createElement("div");
+  const link = document.createElement("a");
+  const description = document.createElement("p");
+  const meta = document.createElement("p");
+  row.className = "saved-repository";
+  link.href = repository.url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.textContent = repository.full_name;
+  description.textContent = repository.description || "No description provided";
+  meta.className = "meta";
+  meta.textContent = `${repository.language || "Unknown language"} | ${repository.stars} stars`;
+  content.append(link, description, meta);
+  const starButton = document.createElement("button");
+  starButton.className = "star-action";
+  starButton.textContent = "Star on GitHub";
+  starButton.addEventListener("click", () => handle(() => starRepository(repository, row, starButton)));
+  row.append(content, starButton);
+  return row;
+}
+
+/**
+ * loads repositories saved for later
+ * @returns {Promise<void>} no return value
+ */
+async function loadInterested() {
+  const data = await api("/api/interested");
+  const container = document.querySelector("#interested-repositories");
+  if (!data.repositories.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty";
+    empty.textContent = "Nothing saved yet. Mark a recommendation as interested to keep it here.";
+    container.replaceChildren(empty);
+    return;
+  }
+  container.replaceChildren(...data.repositories.map(savedRepository));
 }
 
 /**
@@ -220,15 +298,45 @@ async function loadRecommendations() {
 
 /**
  * saves feedback for one repository
- * @param {string} repository repository full name
+ * @param {object} repository repository metadata
  * @param {string} classification feedback classification
  * @param {HTMLElement} card recommendation card
  * @returns {Promise<void>} no return value
  */
 async function submitFeedback(repository, classification, card) {
-  await api("/api/feedback", { method: "POST", body: JSON.stringify({ repository, classification }) });
-  showMessage(`Saved ${classification} for ${repository}`);
-  if (["not interested", "starred", "blocked"].includes(classification)) card.remove();
+  const payload = { ...repositoryPayload(repository), classification };
+  await api("/api/feedback", { method: "POST", body: JSON.stringify(payload) });
+  if (classification === "interested") {
+    await Promise.all([loadInterested(), loadProfile()]);
+    showMessage(`Saved ${repository.full_name} for later and updated your profile`);
+    card.querySelector(".positive").disabled = true;
+    card.querySelector(".positive").textContent = "Saved";
+    return;
+  }
+  showMessage(`Saved ${classification} for ${repository.full_name}`);
+  card.remove();
+}
+
+/**
+ * stars one repository through GitHub
+ * @param {object} repository repository metadata
+ * @param {HTMLElement} card repository card or row
+ * @param {HTMLButtonElement} button star action button
+ * @returns {Promise<void>} no return value
+ */
+async function starRepository(repository, card, button) {
+  button.disabled = true;
+  button.textContent = "Starring...";
+  try {
+    await api("/api/star", { method: "POST", body: JSON.stringify(repositoryPayload(repository)) });
+    await Promise.all([loadStatus(), loadProfile(), loadInterested()]);
+    showMessage(`Starred ${repository.full_name} on GitHub`);
+    card.remove();
+  } catch (error) {
+    button.disabled = false;
+    button.textContent = "Star on GitHub";
+    throw error;
+  }
 }
 
 /**
@@ -253,24 +361,36 @@ document.querySelector("#sync").addEventListener("click", () => handle(async () 
 }));
 refreshButton.addEventListener("click", () => handle(loadRecommendations));
 document.querySelector("#reload-profile").addEventListener("click", () => handle(loadProfile));
+document.querySelector("#reload-saved").addEventListener("click", () => handle(loadInterested));
 document.querySelector("#preferences-form").addEventListener("submit", (event) => handle(async () => {
   event.preventDefault();
   const payload = { languages: splitValues(document.querySelector("#languages").value), topics: splitValues(document.querySelector("#topics").value), keywords: splitValues(document.querySelector("#keywords").value) };
   await api("/api/preferences", { method: "POST", body: JSON.stringify(payload) });
   await Promise.all([loadStatus(), loadProfile()]);
 }, "Preferences saved"));
-document.querySelector("#import-form").addEventListener("submit", (event) => handle(async () => {
+document.querySelector("#import-form").addEventListener("submit", async (event) => {
   event.preventDefault();
+  const button = event.currentTarget.querySelector("button");
   const username = document.querySelector("#import-username").value;
-  const result = await api("/api/import-profile", { method: "POST", body: JSON.stringify({ username }) });
-  await Promise.all([loadStatus(), loadProfile()]);
-  showMessage(`Imported ${result.repository_count} repositories, ${result.pinned_count} pinned, ${result.language_count} languages, ${result.topic_count} topics`);
-}));
+  button.disabled = true;
+  button.textContent = "Importing...";
+  showImportMessage(`Importing the public profile for ${username}...`);
+  try {
+    const result = await api("/api/import-profile", { method: "POST", body: JSON.stringify({ username }) });
+    await Promise.all([loadStatus(), loadProfile()]);
+    showImportMessage(`Imported ${result.repository_count} repositories, ${result.pinned_count} pinned, ${result.language_count} languages, and ${result.topic_count} topics`);
+  } catch (error) {
+    showImportMessage(error.message, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Import from GitProfileLens";
+  }
+});
 
 handle(async () => {
   const preferences = await api("/api/preferences");
   document.querySelector("#languages").value = preferences.languages.join(", ");
   document.querySelector("#topics").value = preferences.topics.join(", ");
   document.querySelector("#keywords").value = preferences.keywords.join(", ");
-  await Promise.all([loadStatus(), loadProfile()]);
+  await Promise.all([loadStatus(), loadProfile(), loadInterested()]);
 });

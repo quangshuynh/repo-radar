@@ -65,6 +65,21 @@ class Storage:
         """
         self._write_json(name, [repository.to_dict() for repository in repositories])
 
+    def load_interested_repositories(self) -> list[Repository]:
+        """
+        load repositories marked as interesting
+        :returns: stored interested repositories
+        """
+        return self.load_repositories("interested.json")
+
+    def save_interested_repositories(self, repositories: list[Repository]) -> None:
+        """
+        save repositories marked as interesting
+        :param repositories: interested repositories to persist
+        :returns: nothing
+        """
+        self.save_repositories(repositories, "interested.json")
+
     def load_profile(self) -> PreferenceProfile | None:
         """
         load the stored preference profile

@@ -9,7 +9,8 @@ Repo Radar is a private Python CLI that learns from repositories you have starre
 - Runs several focused searches instead of one broad query
 - Filters archived, owned, already starred, duplicate, and rejected repositories
 - Ranks by relevance, activity, modest quality signals, and result novelty
-- Stores interested, not interested, starred, and blocked feedback locally
+- Saves interested repositories for later and uses them as preference signals
+- Stars repositories from the local website through the authenticated GitHub API
 - Supports manual seed interests when no starred repositories are available
 - Imports public portfolio signals from the optional GitProfileLens JSON report API
 - Provides a local FastAPI web interface while preserving every CLI command
@@ -57,7 +58,7 @@ Run `import-profile` with a username, or omit it to be prompted, to import a str
 
 Run `sync` again whenever you want to refresh the local starred repository cache.
 
-Run `web`, then open `http://127.0.0.1:8000`. The web UI supports discovery, profile review, preferences, GitProfileLens import, feedback, and starred repository sync. The CLI remains fully supported.
+Run `web`, then open `http://127.0.0.1:8000`. The web UI supports discovery, saved interests, GitHub starring, profile review, preferences, GitProfileLens import, feedback, and starred repository sync. Starring requires `Starring: read and write` user permission and `Metadata: read` repository permission on a fine-grained token. The CLI remains fully supported.
 
 Example recommendation:
 
@@ -78,4 +79,4 @@ Starred repositories, imported public profile data, seed preferences, derived pr
 
 ## Current limitations
 
-The MVP uses weighted counts and heuristics, not machine learning. Search coverage depends on the strongest profile signals and GitHub search limits. Feedback is entered manually, positive feedback does not yet change profile weights, and recommendations are generated fresh rather than cached. GitProfileLens import remains optional and preserves the last valid import when its JSON report is unavailable or malformed.
+The MVP uses weighted counts and heuristics, not machine learning. Search coverage depends on the strongest profile signals and GitHub search limits. Interested feedback contributes a transparent `0.70` preference weight, and recommendations are generated fresh rather than cached. GitProfileLens import remains optional and preserves the last valid import when its JSON report is unavailable or malformed.

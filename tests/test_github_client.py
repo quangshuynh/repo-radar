@@ -1,5 +1,6 @@
 import io
 import json
+import urllib.error
 from email.message import Message
 from urllib.parse import parse_qs, urlparse
 
@@ -113,3 +114,55 @@ def test_starred_request_uses_endpoint_authentication_and_pagination(monkeypatch
     assert requests[0].get_header("Accept") == "application/vnd.github+json"
     assert repositories[-1].full_name == "owner/repository-100"
     assert repositories[-1].stars == 100
+
+
+def test_star_permission_failure_has_actionable_message(monkeypatch) -> None:
+    """
+    star permission failures explain the required token permissions
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+
+    def fake_urlopen(request, timeout):
+        """
+        raise a mocked GitHub permission failure
+        :param request: outgoing URL request
+        :param timeout: outgoing request timeout
+        :returns: no response
+        """
+        raise urllib.error.HTTPError(request.full_url, 403, "Forbidden", {}, io.BytesIO(b"denied"))
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    try:
+        GitHubClient("test-token").star_repository("owner/repository")
+    except RuntimeError as error:
+        assert "Starring write" in str(error)
+        assert "Metadata read" in str(error)
+    else:
+        raise AssertionError("Expected a GitHub permission error")
+
+
+def test_star_repository_uses_authenticated_put_request(monkeypatch) -> None:
+    """
+    starring uses the authenticated GitHub user starred endpoint
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    requests = []
+
+    def fake_urlopen(request, timeout):
+        """
+        capture the outgoing star request
+        :param request: outgoing URL request
+        :param timeout: outgoing request timeout
+        :returns: fake empty API response
+        """
+        requests.append(request)
+        return FakeResponse(None)
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    GitHubClient("test-token").star_repository("owner/repository")
+    assert requests[0].method == "PUT"
+    assert urlparse(requests[0].full_url).path == "/user/starred/owner/repository"
+    assert requests[0].get_header("Authorization") == "Bearer test-token"
+    assert requests[0].get_header("Content-length") == "0"

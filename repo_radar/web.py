@@ -15,7 +15,7 @@ from .discovery import generate_recommendations
 from .feedback import record_feedback
 from .github_client import GitHubClient, GitHubError
 from .gitprofilelens import GitProfileLensError, import_profile
-from .models import Recommendation, SeedPreferences
+from .models import Recommendation, Repository, SeedPreferences
 from .profile import build_profile
 from .storage import Storage
 
@@ -35,6 +35,22 @@ class FeedbackRequest(BaseModel):
 
     repository: str
     classification: str
+    description: str | None = None
+    language: str | None = None
+    topics: list[str] = Field(default_factory=list)
+    stars: int = 0
+    url: str = ""
+
+
+class StarRequest(BaseModel):
+    """GitHub repository star payload"""
+
+    repository: str
+    description: str | None = None
+    language: str | None = None
+    topics: list[str] = Field(default_factory=list)
+    stars: int = 0
+    url: str = ""
 
 
 class ImportProfileRequest(BaseModel):
@@ -97,6 +113,24 @@ def _recommendation_data(recommendation: Recommendation) -> dict[str, object]:
     }
 
 
+def _repository_from_payload(payload: FeedbackRequest | StarRequest) -> Repository:
+    """
+    create repository metadata from a web action payload
+    :param payload: interested or star action payload
+    :returns: normalized repository metadata
+    """
+    owner = payload.repository.split("/", maxsplit=1)[0] if "/" in payload.repository else ""
+    return Repository(
+        full_name=payload.repository,
+        description=payload.description,
+        language=payload.language,
+        topics=payload.topics,
+        stars=payload.stars,
+        owner=owner,
+        url=payload.url,
+    )
+
+
 def create_app() -> FastAPI:
     """
     create the local Repo Radar FastAPI application
@@ -123,7 +157,8 @@ def create_app() -> FastAPI:
         starred = storage.load_repositories()
         seeds = storage.load_seed_preferences()
         imported = storage.load_imported_profile()
-        profile = build_profile(starred, seeds, imported)
+        interested = storage.load_interested_repositories()
+        profile = build_profile(starred, seeds, imported, interested)
         storage.save_profile(profile)
         return {
             **profile.to_dict(),
@@ -131,6 +166,7 @@ def create_app() -> FastAPI:
             "seed_count": len(seeds.languages) + len(seeds.topics) + len(seeds.keywords),
             "imported_count": len(imported.repositories) if imported else 0,
             "feedback_count": len(storage.load_feedback()),
+            "interested_count": len(interested),
         }
 
     @application.get("/api/preferences")
@@ -186,10 +222,41 @@ def create_app() -> FastAPI:
         :returns: saved feedback confirmation
         """
         try:
-            record_feedback(_storage(), payload.repository, payload.classification)
+            storage = _storage()
+            repository_data = _repository_from_payload(payload) if payload.classification == "interested" else None
+            record_feedback(storage, payload.repository, payload.classification, repository_data)
         except ValueError as error:
             raise HTTPException(status_code=400, detail=_safe_error(error)) from error
         return {"repository": payload.repository, "classification": payload.classification}
+
+    @application.get("/api/interested")
+    def get_interested() -> dict[str, object]:
+        """
+        return repositories saved for later
+        :returns: stored interested repositories
+        """
+        repositories = _storage().load_interested_repositories()
+        return {"repositories": [repository.to_dict() for repository in repositories]}
+
+    @application.post("/api/star")
+    def star_repository(payload: StarRequest) -> dict[str, object]:
+        """
+        star one repository through the authenticated GitHub API
+        :param payload: repository star request
+        :returns: successful star confirmation
+        """
+        try:
+            client = GitHubClient()
+            client.star_repository(payload.repository)
+            storage = _storage()
+            repository = _repository_from_payload(payload)
+            starred = {item.full_name.lower(): item for item in storage.load_repositories()}
+            starred[repository.full_name.lower()] = repository
+            storage.save_repositories(list(starred.values()))
+            record_feedback(storage, payload.repository, "starred")
+        except (GitHubError, RuntimeError, ValueError) as error:
+            raise HTTPException(status_code=502, detail=_safe_error(error)) from error
+        return {"repository": payload.repository, "starred": True}
 
     @application.post("/api/sync")
     def sync_repositories() -> dict[str, object]:
@@ -248,7 +315,8 @@ def create_app() -> FastAPI:
         storage = _storage()
         starred = storage.load_repositories()
         imported = storage.load_imported_profile()
-        profile = build_profile(starred, storage.load_seed_preferences(), imported)
+        interested = storage.load_interested_repositories()
+        profile = build_profile(starred, storage.load_seed_preferences(), imported, interested)
         if not profile.languages and not profile.topics and not profile.keywords:
             return {"recommendations": [], "message": "No preference signals are available yet"}
         try:

@@ -137,6 +137,7 @@ def print_preference_sources(storage: Storage, imported: ImportedProfile | None)
     seeds = storage.load_seed_preferences()
     print("\nPreference sources\n")
     print(f"Starred repositories        {len(storage.load_repositories())}")
+    print(f"Interested repositories     {len(storage.load_interested_repositories())}")
     print(f"GitProfileLens repositories {len(imported.repositories) if imported else 0}")
     print(f"Manual seed preferences     {'yes' if seeds.has_signals() else 'no'}")
     print(f"Feedback records            {len(storage.load_feedback())}")
@@ -184,7 +185,12 @@ def run_profile(storage: Storage) -> int:
     """
     repositories = storage.load_repositories()
     imported = storage.load_imported_profile()
-    profile = build_profile(repositories, storage.load_seed_preferences(), imported)
+    profile = build_profile(
+        repositories,
+        storage.load_seed_preferences(),
+        imported,
+        storage.load_interested_repositories(),
+    )
     storage.save_profile(profile)
     print_profile(profile)
     print_preference_sources(storage, imported)
@@ -200,7 +206,12 @@ def run_recommend(storage: Storage, limit: int) -> int:
     """
     starred = storage.load_repositories()
     imported = storage.load_imported_profile()
-    profile = build_profile(starred, storage.load_seed_preferences(), imported)
+    profile = build_profile(
+        starred,
+        storage.load_seed_preferences(),
+        imported,
+        storage.load_interested_repositories(),
+    )
     storage.save_profile(profile)
     if not profile.languages and not profile.topics and not profile.keywords:
         print("No preference signals are available yet.")

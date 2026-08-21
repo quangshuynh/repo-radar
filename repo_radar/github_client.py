@@ -34,33 +34,43 @@ class GitHubClient:
         if not self.token:
             raise GitHubError("GITHUB_TOKEN is required. Set it in your environment before running this command.")
 
-    def _request(self, path: str, parameters: dict[str, str | int] | None = None) -> tuple[Any, dict[str, str]]:
+    def _request(
+        self,
+        path: str,
+        parameters: dict[str, str | int] | None = None,
+        method: str = "GET",
+    ) -> tuple[Any, dict[str, str]]:
         """
         issue one authenticated API request
         :param path: API path
         :param parameters: query string parameters
+        :param method: HTTP request method
         :returns: decoded response and headers
         """
         query = urllib.parse.urlencode(parameters or {})
         url = f"{self.base_url}{path}" + (f"?{query}" if query else "")
-        request = urllib.request.Request(
-            url,
-            headers={
-                "Accept": "application/vnd.github+json",
-                "Authorization": f"Bearer {self.token}",
-                "User-Agent": "repo-radar/0.1",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
-        )
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {self.token}",
+            "User-Agent": "repo-radar/0.1",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+        if method == "PUT":
+            headers["Content-Length"] = "0"
+        request = urllib.request.Request(url, method=method, headers=headers)
         try:
             with urllib.request.urlopen(request, timeout=30) as response:
                 status = getattr(response, "status", 200)
                 if not 200 <= status < 300:
                     raise GitHubError(f"GitHub API request failed with status {status}")
-                try:
-                    data = json.load(response)
-                except (UnicodeDecodeError, json.JSONDecodeError) as error:
-                    raise GitHubError("GitHub API returned an invalid JSON response") from error
+                body = response.read()
+                if not body:
+                    data = None
+                else:
+                    try:
+                        data = json.loads(body)
+                    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+                        raise GitHubError("GitHub API returned an invalid JSON response") from error
                 return data, dict(response.headers.items())
         except urllib.error.HTTPError as error:
             remaining = error.headers.get("X-RateLimit-Remaining")
@@ -68,6 +78,11 @@ class GitHubClient:
             detail = error.read().decode("utf-8", errors="replace")
             if error.code in (403, 429) and remaining == "0":
                 raise GitHubError(f"GitHub API rate limit exceeded. Reset timestamp: {reset or 'unknown'}") from error
+            if error.code == 403 and method == "PUT" and path.startswith("/user/starred/"):
+                raise GitHubError(
+                    "GitHub denied the star request. Update the fine-grained token to allow Starring write "
+                    "and Metadata read, then restart Repo Radar"
+                ) from error
             raise GitHubError(f"GitHub API request failed with status {error.code}: {detail}") from error
         except (urllib.error.URLError, TimeoutError, OSError) as error:
             raise GitHubError(f"Could not connect to GitHub: {error}") from error
@@ -124,3 +139,15 @@ class GitHubClient:
         if not isinstance(data, dict) or not isinstance(data.get("items"), list):
             raise GitHubError("Unexpected response from GitHub repository search")
         return [Repository.from_github(item) for item in data["items"][:limit]]
+
+    def star_repository(self, repository: str) -> None:
+        """
+        star one repository for the authenticated user
+        :param repository: repository in owner and name form
+        :returns: nothing
+        """
+        parts = repository.strip().split("/")
+        if len(parts) != 2 or not all(parts):
+            raise GitHubError("Repository must use the owner/name format")
+        owner, name = (urllib.parse.quote(part, safe="") for part in parts)
+        self._request(f"/user/starred/{owner}/{name}", method="PUT")

@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from repo_radar.gitprofilelens import GitProfileLensError
-from repo_radar.models import ImportedProfile, ImportedRepository, SeedPreferences
+from repo_radar.models import ImportedProfile, ImportedRepository, Repository, SeedPreferences
 from repo_radar.storage import Storage
 from repo_radar.web import app
 
@@ -93,3 +93,67 @@ def test_import_failure_preserves_data_and_redacts_token(tmp_path, monkeypatch) 
     assert response.status_code == 502
     assert "secret-test-token" not in response.text
     assert Storage(tmp_path).load_imported_profile() == previous
+
+
+def test_interested_repository_is_saved_and_updates_profile(tmp_path, monkeypatch) -> None:
+    """
+    interested feedback persists metadata and contributes profile signals
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+    client = TestClient(app)
+    response = client.post(
+        "/api/feedback",
+        json={
+            "repository": "owner/tool",
+            "classification": "interested",
+            "description": "Rust terminal helper",
+            "language": "Rust",
+            "topics": ["terminal"],
+            "stars": 12,
+            "url": "https://github.com/owner/tool",
+        },
+    )
+    interested = client.get("/api/interested")
+    profile = client.get("/api/profile")
+    assert response.status_code == 200
+    assert interested.json()["repositories"][0]["full_name"] == "owner/tool"
+    assert profile.json()["interested_count"] == 1
+    assert profile.json()["languages"] == {"Rust": 1.0}
+
+
+def test_star_repository_calls_github_and_updates_local_cache(tmp_path, monkeypatch) -> None:
+    """
+    web star action calls GitHub then updates local starred state
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+    starred = []
+
+    class FakeGitHubClient:
+        """mock GitHub client for web starring"""
+
+        def star_repository(self, repository: str) -> None:
+            """
+            record one requested GitHub star
+            :param repository: repository full name
+            :returns: nothing
+            """
+            starred.append(repository)
+
+    monkeypatch.setattr("repo_radar.web.GitHubClient", FakeGitHubClient)
+    response = TestClient(app).post(
+        "/api/star",
+        json={"repository": "owner/tool", "language": "Python", "topics": ["cli"], "stars": 9},
+    )
+    storage = Storage(tmp_path)
+    assert response.json() == {"repository": "owner/tool", "starred": True}
+    assert starred == ["owner/tool"]
+    assert storage.load_repositories() == [
+        Repository("owner/tool", language="Python", topics=["cli"], stars=9, owner="owner")
+    ]
+    assert storage.load_feedback()["owner/tool"] == "starred"

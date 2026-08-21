@@ -98,6 +98,9 @@ h3 { margin-bottom: .5rem; }
 .eyebrow { margin-bottom: .35rem; color: #df785b; font-size: .72rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
 .message { min-height: 1.5rem; margin: 0 0 .35rem; color: var(--sage); font-weight: 650; }
 .message.error { color: #a7382f; }
+.inline-message { min-height: 1.35rem; margin: -.45rem 0 1rem; color: var(--sage); font-size: .88rem; font-weight: 650; }
+.inline-message:empty { display: none; }
+.inline-message.error { color: #e28f80; }
 
 .filters, #preferences-form, .inline-form { display: flex; flex-wrap: wrap; gap: .8rem; align-items: end; margin: 1.15rem 0; }
 .filters { padding: 1rem; border: 1px dashed #66483a; border-radius: 12px; background: #2d1f1a; }
@@ -138,6 +141,13 @@ input:focus { border-color: var(--terracotta); box-shadow: 0 0 0 3px rgb(189 91 
 .actions .positive { border-color: #61704c; background: #293222; color: #b9c99c; }
 .actions .negative { border-color: #7e4c42; background: #3a211d; color: #e1a195; }
 .actions .blocked { border-color: #765563; background: #34242b; color: #d1a7b7; }
+.actions .star-action, .star-action { border-color: #9b722a; background: #493619; color: #f1c978; }
+.saved-list { display: grid; gap: .65rem; }
+.saved-repository { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem 1rem; border: 1px solid #4f372d; border-radius: 12px; background: #1c1411; }
+.saved-repository p { margin: .3rem 0 0; }
+.saved-repository > div { min-width: 0; }
+.saved-repository > div > a { font-weight: 750; overflow-wrap: anywhere; }
+.saved-repository button { flex: 0 0 auto; }
 
 #profile-summary > .meta { margin: 1rem 0 1.25rem; padding: .7rem .8rem; border-radius: 9px; background: #30211c; }
 .signal-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
@@ -166,4 +176,5 @@ hr { margin: 1.6rem 0; border: 0; border-top: 1px solid var(--line); }
   .filters, .inline-form, #preferences-form { width: 100%; min-width: 0; }
   .filters > *, .inline-form > *, #preferences-form > * { max-width: 100%; }
   input { width: 100%; }
+  .saved-repository { align-items: flex-start; flex-direction: column; }
 }
