@@ -114,11 +114,13 @@ function recommendationCard(repository) {
   link.textContent = repository.full_name;
   title.appendChild(link);
   score.textContent = `${Math.round(repository.score * 100)}%`;
+  score.className = "score";
   head.append(title, score);
   description.textContent = repository.description || "No description provided";
   meta.className = "meta";
   meta.textContent = `${repository.language || "Unknown language"} | ${repository.stars} stars`;
-  why.textContent = `Why: ${repository.explanation}`;
+  why.className = "why";
+  why.textContent = `Why it fits: ${repository.explanation}`;
   topics.className = "topics";
   for (const value of repository.topics) {
     const topic = document.createElement("span");
@@ -130,6 +132,7 @@ function recommendationCard(repository) {
   for (const classification of ["interested", "not interested", "starred", "blocked"]) {
     const button = document.createElement("button");
     button.textContent = classification;
+    button.className = classification === "interested" ? "positive" : classification === "blocked" ? "blocked" : "negative";
     button.addEventListener("click", () => submitFeedback(repository.full_name, classification, card));
     actions.appendChild(button);
   }

@@ -8,20 +8,24 @@
 </head>
 <body>
   <header class="topbar">
-    <div><strong>Repo Radar</strong><span>local repository discovery</span></div>
+    <div class="brand"><img class="brand-logo" src="/static/images/logo.png" alt=""><span class="brand-copy"><strong>Repo Radar</strong><span>a thoughtful corner of GitHub</span></span></div>
     <nav><a href="#discover">Discover</a><a href="#profile">Profile</a><a href="#preferences">Preferences</a></nav>
   </header>
   <main>
+    <section class="welcome">
+      <div><p class="eyebrow">Your taste, made visible</p><h1>Find projects worth lingering over.</h1><p>Repo Radar learns what pulls you in, then brings back repositories that feel relevant, surprising, and genuinely useful.</p></div>
+      <p class="welcome-note">A quieter way to explore open source, shaped by what you already care about.</p>
+    </section>
     <p id="message" class="message" role="status"></p>
     <section id="status" class="panel compact"><h2>Status</h2><div id="status-content">Loading local state...</div><button id="sync">Sync starred repositories</button></section>
     <section id="discover" class="panel">
-      <div class="section-heading"><div><p class="eyebrow">Personalized results</p><h1>Discover repositories</h1></div><button id="refresh">Refresh recommendations</button></div>
+      <div class="section-heading"><div><p class="eyebrow">Picked for you</p><h2>Discover repositories</h2><p class="section-intro">A fresh batch of projects, balanced for relevance and a little serendipity.</p></div><button id="refresh">Find something good</button></div>
       <div class="filters"><label>Language<input id="filter-language" placeholder="Python"></label><label>Minimum stars<input id="filter-min" type="number" min="0" value="0"></label><label>Maximum stars<input id="filter-max" type="number" min="0"></label><label>Results<input id="filter-limit" type="number" min="1" max="50" value="10"></label><label class="checkbox"><input id="filter-gems" type="checkbox"> Hidden gems</label></div>
       <div id="recommendations" class="cards"><p class="empty">Choose refresh to generate recommendations</p></div>
     </section>
-    <section id="profile" class="panel"><div class="section-heading"><div><p class="eyebrow">Transparent signals</p><h2>Preference profile</h2></div><button id="reload-profile" class="secondary">Reload profile</button></div><div id="profile-summary"></div></section>
+    <section id="profile" class="panel"><div class="section-heading"><div><p class="eyebrow">What catches your eye</p><h2>Your taste profile</h2><p class="section-intro">The languages, topics, and ideas currently guiding your recommendations.</p></div><button id="reload-profile" class="secondary">Refresh profile</button></div><div id="profile-summary"></div></section>
     <section id="preferences" class="panel">
-      <p class="eyebrow">Cold start</p><h2>Build your starting profile</h2>
+      <p class="eyebrow">Make it yours</p><h2>Shape your starting profile</h2><p class="section-intro">Bring in your public work, then add a few interests you would love to see more of.</p>
       <form id="import-form" class="inline-form"><label>GitHub username<input id="import-username" required placeholder="quangshuynh"></label><button>Import from GitProfileLens</button></form>
       <hr>
       <form id="preferences-form"><label>Languages<input id="languages" placeholder="Python, TypeScript"></label><label>Topics<input id="topics" placeholder="developer-tools, backend, automation"></label><label>Keywords<input id="keywords" placeholder="cli, api, productivity"></label><button>Save preferences</button></form>
