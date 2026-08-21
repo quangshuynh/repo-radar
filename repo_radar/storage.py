@@ -80,6 +80,28 @@ class Storage:
         """
         self.save_repositories(repositories, "interested.json")
 
+    def remove_interested_repository(self, repository: str) -> bool:
+        """
+        remove one repository from the interested list
+        :param repository: repository full name
+        :returns: whether a repository was removed
+        """
+        interested = self.load_interested_repositories()
+        remaining = [item for item in interested if item.full_name.lower() != repository.lower()]
+        if len(remaining) == len(interested):
+            return False
+        self.save_interested_repositories(remaining)
+        return True
+
+    def clear_interested_repositories(self) -> int:
+        """
+        remove every repository from the interested list
+        :returns: number of removed repositories
+        """
+        repositories = self.load_interested_repositories()
+        self.save_interested_repositories([])
+        return len(repositories)
+
     def load_profile(self) -> PreferenceProfile | None:
         """
         load the stored preference profile

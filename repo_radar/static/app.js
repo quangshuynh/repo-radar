@@ -185,6 +185,7 @@ function savedRepository(repository) {
   const link = document.createElement("a");
   const description = document.createElement("p");
   const meta = document.createElement("p");
+  const removeButton = document.createElement("button");
   row.className = "saved-repository";
   link.href = repository.url;
   link.target = "_blank";
@@ -194,12 +195,64 @@ function savedRepository(repository) {
   meta.className = "meta";
   meta.textContent = `${repository.language || "Unknown language"} | ${repository.stars} stars`;
   content.append(link, description, meta);
+  removeButton.className = "saved-remove";
+  removeButton.type = "button";
+  removeButton.title = `Remove ${repository.full_name} from saved`;
+  removeButton.setAttribute("aria-label", `Remove ${repository.full_name} from saved`);
+  removeButton.textContent = "×";
+  removeButton.addEventListener("click", () => handle(() => removeInterested(repository, row)));
   const starButton = document.createElement("button");
   starButton.className = "star-action";
   starButton.textContent = "Star on GitHub";
   starButton.addEventListener("click", () => handle(() => starRepository(repository, row, starButton)));
-  row.append(content, starButton);
+  row.append(content, starButton, removeButton);
   return row;
+}
+
+/**
+ * removes one repository from the saved list after confirmation
+ * @param {object} repository saved repository metadata
+ * @param {HTMLElement} row saved repository row
+ * @returns {Promise<void>} no return value
+ */
+async function removeInterested(repository, row) {
+  if (!window.confirm(`Remove ${repository.full_name} from saved repositories?`)) return;
+  const [owner, name] = repository.full_name.split("/", 2).map(encodeURIComponent);
+  await api(`/api/interested/${owner}/${name}`, { method: "DELETE" });
+  row.remove();
+  await loadProfile();
+  showMessage(`Removed ${repository.full_name} from saved`);
+  if (!document.querySelector("#interested-repositories").children.length) await loadInterested();
+}
+
+/**
+ * removes every repository from the saved list after confirmation
+ * @returns {Promise<void>} no return value
+ */
+async function clearInterested() {
+  if (!window.confirm("Remove every repository from your saved list? This cannot be undone.")) return;
+  const result = await api("/api/interested", { method: "DELETE" });
+  await Promise.all([loadInterested(), loadProfile()]);
+  showMessage(`Removed ${result.removed_count} saved repositories`);
+}
+
+/**
+ * stars every saved repository after confirmation
+ * @returns {Promise<void>} no return value
+ */
+async function starAllInterested() {
+  if (!window.confirm("Star every saved repository on GitHub?")) return;
+  const button = document.querySelector("#star-all-saved");
+  button.disabled = true;
+  button.textContent = "Starring saved repos...";
+  try {
+    const result = await api("/api/interested/star-all", { method: "POST" });
+    await Promise.all([loadInterested(), loadStatus(), loadProfile()]);
+    showMessage(`Starred ${result.starred_count} saved repositories on GitHub`);
+  } finally {
+    button.disabled = !document.querySelector(".saved-repository");
+    button.textContent = "Star all on GitHub";
+  }
 }
 
 /**
@@ -209,6 +262,8 @@ function savedRepository(repository) {
 async function loadInterested() {
   const data = await api("/api/interested");
   const container = document.querySelector("#interested-repositories");
+  document.querySelector("#star-all-saved").disabled = !data.repositories.length;
+  document.querySelector("#clear-saved").disabled = !data.repositories.length;
   if (!data.repositories.length) {
     const empty = document.createElement("p");
     empty.className = "empty";
@@ -362,6 +417,8 @@ document.querySelector("#sync").addEventListener("click", () => handle(async () 
 refreshButton.addEventListener("click", () => handle(loadRecommendations));
 document.querySelector("#reload-profile").addEventListener("click", () => handle(loadProfile));
 document.querySelector("#reload-saved").addEventListener("click", () => handle(loadInterested));
+document.querySelector("#clear-saved").addEventListener("click", () => handle(clearInterested));
+document.querySelector("#star-all-saved").addEventListener("click", () => handle(starAllInterested));
 document.querySelector("#preferences-form").addEventListener("submit", (event) => handle(async () => {
   event.preventDefault();
   const payload = { languages: splitValues(document.querySelector("#languages").value), topics: splitValues(document.querySelector("#topics").value), keywords: splitValues(document.querySelector("#keywords").value) };

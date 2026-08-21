@@ -131,6 +131,37 @@ def _repository_from_payload(payload: FeedbackRequest | StarRequest) -> Reposito
     )
 
 
+def _save_star(storage: Storage, repository: Repository) -> None:
+    """
+    persist one confirmed GitHub star locally
+    :param storage: local storage manager
+    :param repository: repository confirmed as starred
+    :returns: nothing
+    """
+    starred = {item.full_name.lower(): item for item in storage.load_repositories()}
+    starred[repository.full_name.lower()] = repository
+    storage.save_repositories(list(starred.values()))
+    record_feedback(storage, repository.full_name, "starred")
+
+
+def _remove_interested_feedback(storage: Storage, repositories: set[str]) -> None:
+    """
+    remove interested classifications for repositories leaving the saved list
+    :param storage: local storage manager
+    :param repositories: case insensitive repository names to clear
+    :returns: nothing
+    """
+    names = {repository.lower() for repository in repositories}
+    feedback = storage.load_feedback()
+    remaining = {
+        repository: classification
+        for repository, classification in feedback.items()
+        if repository.lower() not in names or classification != "interested"
+    }
+    if len(remaining) != len(feedback):
+        storage.save_feedback(remaining)
+
+
 def create_app() -> FastAPI:
     """
     create the local Repo Radar FastAPI application
@@ -238,6 +269,34 @@ def create_app() -> FastAPI:
         repositories = _storage().load_interested_repositories()
         return {"repositories": [repository.to_dict() for repository in repositories]}
 
+    @application.delete("/api/interested/{owner}/{name}")
+    def remove_interested(owner: str, name: str) -> dict[str, object]:
+        """
+        remove one repository from the saved list
+        :param owner: repository owner
+        :param name: repository name
+        :returns: removal confirmation
+        """
+        repository = f"{owner}/{name}"
+        storage = _storage()
+        removed = storage.remove_interested_repository(repository)
+        if not removed:
+            raise HTTPException(status_code=404, detail="Saved repository was not found")
+        _remove_interested_feedback(storage, {repository})
+        return {"repository": repository, "removed": True}
+
+    @application.delete("/api/interested")
+    def clear_interested() -> dict[str, int]:
+        """
+        remove every repository from the saved list
+        :returns: number of removed repositories
+        """
+        storage = _storage()
+        repositories = storage.load_interested_repositories()
+        removed_count = storage.clear_interested_repositories()
+        _remove_interested_feedback(storage, {repository.full_name for repository in repositories})
+        return {"removed_count": removed_count}
+
     @application.post("/api/star")
     def star_repository(payload: StarRequest) -> dict[str, object]:
         """
@@ -250,13 +309,29 @@ def create_app() -> FastAPI:
             client.star_repository(payload.repository)
             storage = _storage()
             repository = _repository_from_payload(payload)
-            starred = {item.full_name.lower(): item for item in storage.load_repositories()}
-            starred[repository.full_name.lower()] = repository
-            storage.save_repositories(list(starred.values()))
-            record_feedback(storage, payload.repository, "starred")
+            _save_star(storage, repository)
         except (GitHubError, RuntimeError, ValueError) as error:
             raise HTTPException(status_code=502, detail=_safe_error(error)) from error
         return {"repository": payload.repository, "starred": True}
+
+    @application.post("/api/interested/star-all")
+    def star_all_interested() -> dict[str, int]:
+        """
+        star every saved repository through GitHub
+        :returns: number of repositories successfully starred
+        """
+        storage = _storage()
+        repositories = storage.load_interested_repositories()
+        if not repositories:
+            return {"starred_count": 0}
+        try:
+            client = GitHubClient()
+            for repository in repositories:
+                client.star_repository(repository.full_name)
+                _save_star(storage, repository)
+        except (GitHubError, RuntimeError, ValueError) as error:
+            raise HTTPException(status_code=502, detail=_safe_error(error)) from error
+        return {"starred_count": len(repositories)}
 
     @application.post("/api/sync")
     def sync_repositories() -> dict[str, object]:

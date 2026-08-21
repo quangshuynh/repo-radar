@@ -157,3 +157,56 @@ def test_star_repository_calls_github_and_updates_local_cache(tmp_path, monkeypa
         Repository("owner/tool", language="Python", topics=["cli"], stars=9, owner="owner")
     ]
     assert storage.load_feedback()["owner/tool"] == "starred"
+
+
+def test_saved_repository_removal_endpoints_clear_feedback(tmp_path, monkeypatch) -> None:
+    """
+    single and bulk removal clear saved repositories and interested feedback
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+    storage = Storage(tmp_path)
+    repositories = [Repository("one/tool"), Repository("two/tool")]
+    storage.save_interested_repositories(repositories)
+    storage.save_feedback({"one/tool": "interested", "two/tool": "interested", "keep/rejected": "blocked"})
+    client = TestClient(app)
+    removed = client.delete("/api/interested/one/tool")
+    cleared = client.delete("/api/interested")
+    assert removed.json() == {"repository": "one/tool", "removed": True}
+    assert cleared.json() == {"removed_count": 1}
+    assert storage.load_interested_repositories() == []
+    assert storage.load_feedback() == {"keep/rejected": "blocked"}
+
+
+def test_star_all_saved_repositories_updates_each_confirmed_star(tmp_path, monkeypatch) -> None:
+    """
+    bulk starring sends every saved repository to GitHub and clears the saved list
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+    storage = Storage(tmp_path)
+    storage.save_interested_repositories([Repository("one/tool"), Repository("two/tool")])
+    storage.save_feedback({"one/tool": "interested", "two/tool": "interested"})
+    starred = []
+
+    class FakeGitHubClient:
+        """mock GitHub client for bulk starring"""
+
+        def star_repository(self, repository: str) -> None:
+            """
+            record one requested GitHub star
+            :param repository: repository full name
+            :returns: nothing
+            """
+            starred.append(repository)
+
+    monkeypatch.setattr("repo_radar.web.GitHubClient", FakeGitHubClient)
+    response = TestClient(app).post("/api/interested/star-all")
+    assert response.json() == {"starred_count": 2}
+    assert starred == ["one/tool", "two/tool"]
+    assert storage.load_interested_repositories() == []
+    assert {repository.full_name for repository in storage.load_repositories()} == {"one/tool", "two/tool"}

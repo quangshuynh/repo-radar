@@ -90,6 +90,7 @@ main { width: min(1120px, calc(100% - 2rem)); margin: 2rem auto 5rem; }
 .panel.compact #status-content { color: #dfcec1; font-size: .88rem; }
 .panel.compact button { border-color: #d7922d; background: var(--honey); color: #4b3320; box-shadow: 0 4px 0 #a86c1f; }
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.section-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .55rem; }
 h1, h2, h3, p { margin-top: 0; }
 h2, h3 { font-family: Georgia, "Times New Roman", serif; }
 h2 { margin-bottom: .55rem; font-size: 1.75rem; letter-spacing: -.02em; }
@@ -144,10 +145,14 @@ input:focus { border-color: var(--terracotta); box-shadow: 0 0 0 3px rgb(189 91 
 .actions .star-action, .star-action { border-color: #9b722a; background: #493619; color: #f1c978; }
 .saved-list { display: grid; gap: .65rem; }
 .saved-repository { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem 1rem; border: 1px solid #4f372d; border-radius: 12px; background: #1c1411; }
+.saved-repository { position: relative; padding-right: 3.25rem; }
 .saved-repository p { margin: .3rem 0 0; }
 .saved-repository > div { min-width: 0; }
 .saved-repository > div > a { font-weight: 750; overflow-wrap: anywhere; }
 .saved-repository button { flex: 0 0 auto; }
+.saved-repository .saved-remove { position: absolute; top: .55rem; right: .55rem; display: grid; width: 1.8rem; height: 1.8rem; padding: 0; place-items: center; border-color: transparent; background: transparent; color: var(--muted); box-shadow: none; font-size: 1.25rem; line-height: 1; }
+.saved-repository .saved-remove:hover { background: #482922; color: #f0a091; box-shadow: none; }
+button.danger { border-color: #7e4c42; background: #3a211d; color: #e1a195; box-shadow: 0 4px 0 #21110e; }
 
 #profile-summary > .meta { margin: 1rem 0 1.25rem; padding: .7rem .8rem; border-radius: 9px; background: #30211c; }
 .signal-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
