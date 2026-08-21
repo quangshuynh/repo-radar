@@ -16,7 +16,7 @@ from .feedback import reconcile_starred_repositories, record_feedback
 from .github_client import GitHubClient, GitHubError
 from .gitprofilelens import GitProfileLensError, import_profile
 from .models import Recommendation, Repository, SeedPreferences
-from .profile import build_profile
+from .profile import INTERESTED_REPOSITORY_WEIGHT, build_profile, extract_keywords
 from .storage import Storage
 
 STATIC_DIRECTORY = Path(__file__).parent / "static"
@@ -110,6 +110,24 @@ def _recommendation_data(recommendation: Recommendation) -> dict[str, object]:
         "url": repository.url,
         "topics": repository.topics,
         "explanation": recommendation.explanation,
+    }
+
+
+def _interested_data(repository: Repository) -> dict[str, object]:
+    """
+    serialize a saved repository with transparent profile influence
+    :param repository: saved repository metadata
+    :returns: public saved repository fields
+    """
+    signals = (
+        int(bool(repository.language))
+        + len(set(repository.topics))
+        + len(set(extract_keywords(repository.description)))
+    )
+    return {
+        **repository.to_dict(),
+        "preference_weight": INTERESTED_REPOSITORY_WEIGHT,
+        "signal_count": signals,
     }
 
 
@@ -260,14 +278,66 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=400, detail=_safe_error(error)) from error
         return {"repository": payload.repository, "classification": payload.classification}
 
+    @application.get("/api/feedback")
+    def get_feedback() -> dict[str, object]:
+        """
+        return local recommendation feedback records
+        :returns: feedback records sorted by repository name
+        """
+        feedback = _storage().load_feedback()
+        records = [
+            {"repository": repository, "classification": classification}
+            for repository, classification in sorted(feedback.items(), key=lambda item: item[0].lower())
+        ]
+        return {"records": records}
+
+    @application.delete("/api/feedback/{owner}/{name}")
+    def remove_feedback(owner: str, name: str) -> dict[str, object]:
+        """
+        remove one local feedback record
+        :param owner: repository owner
+        :param name: repository name
+        :returns: removal confirmation
+        """
+        repository = f"{owner}/{name}"
+        storage = _storage()
+        feedback = storage.load_feedback()
+        matching = next((key for key in feedback if key.lower() == repository.lower()), None)
+        if matching is None:
+            raise HTTPException(status_code=404, detail="Feedback record was not found")
+        classification = feedback.pop(matching)
+        storage.save_feedback(feedback)
+        if classification == "interested":
+            storage.remove_interested_repository(repository)
+        return {"repository": matching, "classification": classification, "removed": True}
+
+    @application.get("/api/starred")
+    def get_starred() -> dict[str, object]:
+        """
+        return repositories in the local GitHub starred cache
+        :returns: cached starred repositories
+        """
+        repositories = _storage().load_repositories()
+        return {"repositories": [repository.to_dict() for repository in repositories]}
+
     @application.get("/api/interested")
     def get_interested() -> dict[str, object]:
         """
         return repositories saved for later
         :returns: stored interested repositories
         """
-        repositories = _storage().load_interested_repositories()
-        return {"repositories": [repository.to_dict() for repository in repositories]}
+        repositories = sorted(
+            _storage().load_interested_repositories(),
+            key=lambda repository: (
+                -(
+                    int(bool(repository.language))
+                    + len(set(repository.topics))
+                    + len(set(extract_keywords(repository.description)))
+                ),
+                repository.full_name.lower(),
+            ),
+        )
+        return {"repositories": [_interested_data(repository) for repository in repositories]}
 
     @application.delete("/api/interested/{owner}/{name}")
     def remove_interested(owner: str, name: str) -> dict[str, object]:

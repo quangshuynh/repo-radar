@@ -205,6 +205,7 @@ function savedRepository(repository) {
   const link = document.createElement("a");
   const description = document.createElement("p");
   const meta = document.createElement("p");
+  const influence = document.createElement("p");
   const removeButton = document.createElement("button");
   row.className = "saved-repository";
   link.href = repository.url;
@@ -214,7 +215,9 @@ function savedRepository(repository) {
   description.textContent = repository.description || "No description provided";
   meta.className = "meta";
   meta.textContent = `${repository.language || "Unknown language"} | ${repository.stars} stars`;
-  content.append(link, description, meta);
+  influence.className = "influence";
+  influence.textContent = `Profile influence ${repository.preference_weight.toFixed(2)} | ${repository.signal_count} signals`;
+  content.append(link, description, meta, influence);
   removeButton.className = "saved-remove";
   removeButton.type = "button";
   removeButton.title = `Remove ${repository.full_name} from saved`;
@@ -230,6 +233,105 @@ function savedRepository(repository) {
 }
 
 /**
+ * creates one cached starred repository row
+ * @param {object} repository starred repository metadata
+ * @returns {HTMLElement} starred repository row
+ */
+function starredRepository(repository) {
+  const row = document.createElement("article");
+  const link = document.createElement("a");
+  const description = document.createElement("p");
+  const meta = document.createElement("p");
+  row.className = "library-repository";
+  link.href = repository.url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.textContent = repository.full_name;
+  description.textContent = repository.description || "No description provided";
+  meta.className = "meta";
+  meta.textContent = `${repository.language || "Unknown language"} | ${repository.stars} stars`;
+  row.append(link, description, meta);
+  return row;
+}
+
+/**
+ * loads cached GitHub starred repositories
+ * @returns {Promise<void>} no return value
+ */
+async function loadStarred() {
+  const data = await api("/api/starred");
+  const container = document.querySelector("#starred-repositories");
+  if (!data.repositories.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty";
+    empty.textContent = "No starred repositories are cached yet. Run a sync to bring them in.";
+    container.replaceChildren(empty);
+    return;
+  }
+  container.replaceChildren(...data.repositories.map(starredRepository));
+}
+
+/**
+ * creates one feedback history row
+ * @param {object} record feedback record
+ * @returns {HTMLElement} feedback row
+ */
+function feedbackRecord(record) {
+  const row = document.createElement("div");
+  const repository = document.createElement("span");
+  const button = document.createElement("button");
+  row.className = "feedback-record";
+  repository.textContent = record.repository;
+  button.className = "secondary";
+  button.textContent = "Undo";
+  button.addEventListener("click", () => handle(() => removeFeedback(record, row)));
+  row.append(repository, button);
+  return row;
+}
+
+/**
+ * loads and groups local feedback history
+ * @returns {Promise<void>} no return value
+ */
+async function loadFeedback() {
+  const data = await api("/api/feedback");
+  const container = document.querySelector("#feedback-records");
+  if (!data.records.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty";
+    empty.textContent = "No feedback records yet.";
+    container.replaceChildren(empty);
+    return;
+  }
+  const classifications = ["blocked", "not interested", "interested", "starred"];
+  const groups = classifications.flatMap((classification) => {
+    const records = data.records.filter((record) => record.classification === classification);
+    if (!records.length) return [];
+    const section = document.createElement("section");
+    const heading = document.createElement("h3");
+    heading.textContent = `${classification} (${records.length})`;
+    section.append(heading, ...records.map(feedbackRecord));
+    return [section];
+  });
+  container.replaceChildren(...groups);
+}
+
+/**
+ * clears one local feedback record after confirmation
+ * @param {object} record feedback record
+ * @param {HTMLElement} row feedback row
+ * @returns {Promise<void>} no return value
+ */
+async function removeFeedback(record, row) {
+  if (!window.confirm(`Undo ${record.classification} feedback for ${record.repository}?`)) return;
+  const [owner, name] = record.repository.split("/", 2).map(encodeURIComponent);
+  await api(`/api/feedback/${owner}/${name}`, { method: "DELETE" });
+  row.remove();
+  await Promise.all([loadFeedback(), loadInterested(), loadProfile()]);
+  showMessage(`Cleared feedback for ${record.repository}`);
+}
+
+/**
  * removes one repository from the saved list after confirmation
  * @param {object} repository saved repository metadata
  * @param {HTMLElement} row saved repository row
@@ -240,7 +342,7 @@ async function removeInterested(repository, row) {
   const [owner, name] = repository.full_name.split("/", 2).map(encodeURIComponent);
   await api(`/api/interested/${owner}/${name}`, { method: "DELETE" });
   row.remove();
-  await loadProfile();
+  await Promise.all([loadProfile(), loadFeedback()]);
   showMessage(`Removed ${repository.full_name} from saved`);
   if (!document.querySelector("#interested-repositories").children.length) await loadInterested();
 }
@@ -252,7 +354,7 @@ async function removeInterested(repository, row) {
 async function clearInterested() {
   if (!window.confirm("Remove every repository from your saved list? This cannot be undone.")) return;
   const result = await api("/api/interested", { method: "DELETE" });
-  await Promise.all([loadInterested(), loadProfile()]);
+  await Promise.all([loadInterested(), loadProfile(), loadFeedback()]);
   showMessage(`Removed ${result.removed_count} saved repositories`);
 }
 
@@ -267,7 +369,7 @@ async function starAllInterested() {
   button.textContent = "Starring saved repos...";
   try {
     const result = await api("/api/interested/star-all", { method: "POST" });
-    await Promise.all([loadInterested(), loadStatus(), loadProfile()]);
+    await Promise.all([loadInterested(), loadStarred(), loadStatus(), loadProfile(), loadFeedback()]);
     showMessage(`Starred ${result.starred_count} saved repositories on GitHub`);
   } finally {
     button.disabled = !document.querySelector(".saved-repository");
@@ -382,12 +484,13 @@ async function submitFeedback(repository, classification, card) {
   const payload = { ...repositoryPayload(repository), classification };
   await api("/api/feedback", { method: "POST", body: JSON.stringify(payload) });
   if (classification === "interested") {
-    await Promise.all([loadInterested(), loadProfile()]);
+    await Promise.all([loadInterested(), loadProfile(), loadFeedback()]);
     showMessage(`Saved ${repository.full_name} for later and updated your profile`);
     card.querySelector(".positive").disabled = true;
     card.querySelector(".positive").textContent = "Saved";
     return;
   }
+  await loadFeedback();
   showMessage(`Saved ${classification} for ${repository.full_name}`);
   card.remove();
 }
@@ -405,7 +508,7 @@ async function starRepository(repository, card, button) {
   showCardMessage(card, "Asking GitHub to add this star...");
   try {
     await api("/api/star", { method: "POST", body: JSON.stringify(repositoryPayload(repository)) });
-    await Promise.all([loadStatus(), loadProfile(), loadInterested()]);
+    await Promise.all([loadStatus(), loadProfile(), loadInterested(), loadStarred(), loadFeedback()]);
     showMessage(`Starred ${repository.full_name} on GitHub`);
     card.remove();
   } catch (error) {
@@ -432,7 +535,7 @@ async function handle(action, success = "") {
 
 document.querySelector("#sync").addEventListener("click", () => handle(async () => {
   const result = await api("/api/sync", { method: "POST" });
-  await Promise.all([loadStatus(), loadProfile(), loadInterested()]);
+  await Promise.all([loadStatus(), loadProfile(), loadInterested(), loadStarred(), loadFeedback()]);
   const reconciled = result.reconciled_count
     ? ` and removed ${result.reconciled_count} matching repositories from saved`
     : "";
@@ -441,6 +544,8 @@ document.querySelector("#sync").addEventListener("click", () => handle(async () 
 refreshButton.addEventListener("click", () => handle(loadRecommendations));
 document.querySelector("#reload-profile").addEventListener("click", () => handle(loadProfile));
 document.querySelector("#reload-saved").addEventListener("click", () => handle(loadInterested));
+document.querySelector("#reload-starred").addEventListener("click", () => handle(loadStarred));
+document.querySelector("#reload-feedback").addEventListener("click", () => handle(loadFeedback));
 document.querySelector("#clear-saved").addEventListener("click", () => handle(clearInterested));
 document.querySelector("#star-all-saved").addEventListener("click", () => handle(starAllInterested));
 document.querySelector("#preferences-form").addEventListener("submit", (event) => handle(async () => {
@@ -473,5 +578,5 @@ handle(async () => {
   document.querySelector("#languages").value = preferences.languages.join(", ");
   document.querySelector("#topics").value = preferences.topics.join(", ");
   document.querySelector("#keywords").value = preferences.keywords.join(", ");
-  await Promise.all([loadStatus(), loadProfile(), loadInterested()]);
+  await Promise.all([loadStatus(), loadProfile(), loadInterested(), loadStarred(), loadFeedback()]);
 });

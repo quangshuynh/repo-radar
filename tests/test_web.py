@@ -246,3 +246,37 @@ def test_web_sync_removes_externally_starred_saved_repository(tmp_path, monkeypa
     assert response.json()["reconciled_count"] == 1
     assert storage.load_interested_repositories() == [Repository("owner/keep")]
     assert storage.load_feedback() == {"owner/keep": "interested", "owner/tool": "starred"}
+
+
+def test_starred_saved_influence_and_feedback_history_apis(tmp_path, monkeypatch) -> None:
+    """
+    library and feedback APIs expose local state and support undo
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+    storage = Storage(tmp_path)
+    storage.save_repositories([Repository("starred/tool", language="Python")])
+    storage.save_interested_repositories(
+        [
+            Repository("saved/small", language="Go"),
+            Repository("saved/strong", "Rust terminal automation", "Rust", ["terminal", "cli"]),
+        ]
+    )
+    storage.save_feedback({"blocked/tool": "blocked", "dismissed/tool": "not interested"})
+    client = TestClient(app)
+    starred = client.get("/api/starred").json()["repositories"]
+    interested = client.get("/api/interested").json()["repositories"]
+    feedback = client.get("/api/feedback").json()["records"]
+    removed = client.delete("/api/feedback/blocked/tool")
+    assert starred[0]["full_name"] == "starred/tool"
+    assert interested[0]["full_name"] == "saved/strong"
+    assert interested[0]["preference_weight"] == 0.7
+    assert interested[0]["signal_count"] > interested[1]["signal_count"]
+    assert feedback == [
+        {"repository": "blocked/tool", "classification": "blocked"},
+        {"repository": "dismissed/tool", "classification": "not interested"},
+    ]
+    assert removed.json() == {"repository": "blocked/tool", "classification": "blocked", "removed": True}
+    assert storage.load_feedback() == {"dismissed/tool": "not interested"}

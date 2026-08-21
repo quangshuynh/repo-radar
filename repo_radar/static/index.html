@@ -9,7 +9,7 @@
 <body>
   <header class="topbar">
     <div class="brand"><img class="brand-logo" src="/static/images/logo.png" alt=""><span class="brand-copy"><strong>Repo Radar</strong><span>a thoughtful corner of GitHub</span></span></div>
-    <nav><a href="#discover">Discover</a><a href="#saved">Saved</a><a href="#profile">Profile</a><a href="#preferences">Preferences</a></nav>
+    <nav><a href="#discover">Discover</a><a href="#saved">Saved</a><a href="#starred">Starred</a><a href="#profile">Profile</a><a href="#feedback">Feedback</a><a href="#preferences">Preferences</a></nav>
   </header>
   <main>
     <section class="welcome">
@@ -27,7 +27,15 @@
       <div class="section-heading"><div><p class="eyebrow">Come back anytime</p><h2>Saved for later</h2><p class="section-intro">Repositories you marked as interested also help shape what Repo Radar recommends next.</p></div><div class="section-actions"><button id="star-all-saved">Star all on GitHub</button><button id="clear-saved" class="danger">Remove all saved</button><button id="reload-saved" class="secondary">Refresh saved</button></div></div>
       <div id="interested-repositories" class="saved-list"><p class="empty">Nothing saved yet. Mark a recommendation as interested to keep it here.</p></div>
     </section>
+    <section id="starred" class="panel">
+      <div class="section-heading"><div><p class="eyebrow">Your GitHub library</p><h2>Already starred</h2><p class="section-intro">A local view of the repositories returned by your latest GitHub sync.</p></div><button id="reload-starred" class="secondary">Refresh view</button></div>
+      <div id="starred-repositories" class="library-list"><p class="empty">No starred repositories are cached yet.</p></div>
+    </section>
     <section id="profile" class="panel"><div class="section-heading"><div><p class="eyebrow">What catches your eye</p><h2>Your taste profile</h2><p class="section-intro">The languages, topics, and ideas currently guiding your recommendations.</p></div><button id="reload-profile" class="secondary">Refresh profile</button></div><div id="profile-summary"></div></section>
+    <section id="feedback" class="panel">
+      <div class="section-heading"><div><p class="eyebrow">Change your mind</p><h2>Feedback history</h2><p class="section-intro">Review blocked and dismissed repositories, then clear a record to make it eligible for discovery again.</p></div><button id="reload-feedback" class="secondary">Refresh feedback</button></div>
+      <div id="feedback-records" class="feedback-groups"><p class="empty">No feedback records yet.</p></div>
+    </section>
     <section id="preferences" class="panel">
       <p class="eyebrow">Make it yours</p><h2>Shape your starting profile</h2><p class="section-intro">Bring in your public work, then add a few interests you would love to see more of.</p>
       <form id="import-form" class="inline-form"><label>GitHub username<input id="import-username" required placeholder="quangshuynh"></label><button>Import from GitProfileLens</button></form>
