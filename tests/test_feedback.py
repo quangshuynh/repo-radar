@@ -14,3 +14,17 @@ def test_negative_feedback_is_persisted_and_filtered(tmp_path) -> None:
     record_feedback(storage, "owner/repo", "not-interested")
     candidates = filter_candidates([Repository("owner/repo", owner="owner")], set(), "me", storage.load_feedback())
     assert candidates == []
+
+
+def test_interested_feedback_is_persisted_and_filtered(tmp_path) -> None:
+    """
+    saved repositories do not appear in later candidate sets
+    :param tmp_path: pytest temporary directory
+    :returns: nothing
+    """
+    storage = Storage(tmp_path)
+    repository = Repository("owner/repo", language="Python", owner="owner")
+    record_feedback(storage, repository.full_name, "interested", repository)
+    candidates = filter_candidates([repository], set(), "me", storage.load_feedback())
+    assert candidates == []
+    assert storage.load_interested_repositories() == [repository]

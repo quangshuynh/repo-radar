@@ -43,8 +43,14 @@ def test_filter_candidates_excludes_ineligible_results() -> None:
         Repository("old/archive", archived=True, owner="old"),
         Repository("seen/star", owner="seen"),
         Repository("no/thanks", owner="no"),
+        Repository("saved/later", owner="saved"),
     ]
-    result = filter_candidates(candidates, {"seen/star"}, "ME", {"no/thanks": "not interested"})
+    result = filter_candidates(
+        candidates,
+        {"seen/star"},
+        "ME",
+        {"no/thanks": "not interested", "saved/later": "interested"},
+    )
     assert [item.full_name for item in result] == ["good/repo"]
 
 

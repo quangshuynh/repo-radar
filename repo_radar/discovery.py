@@ -43,7 +43,7 @@ def filter_candidates(
     excluded_owners: set[str] | None = None,
 ) -> list[Repository]:
     """
-    remove ineligible and previously rejected candidates
+    remove ineligible and previously handled candidates
     :param repositories: discovered repositories
     :param starred_names: full names already starred by the user
     :param owner: authenticated GitHub login
@@ -52,7 +52,9 @@ def filter_candidates(
     :returns: eligible candidate repositories
     """
     excluded_feedback = {
-        name.lower() for name, value in feedback.items() if value in {"not interested", "blocked", "starred"}
+        name.lower()
+        for name, value in feedback.items()
+        if value in {"interested", "not interested", "blocked", "starred"}
     }
     starred = {name.lower() for name in starred_names}
     owners = {owner.lower(), *(value.lower() for value in excluded_owners or set())}
