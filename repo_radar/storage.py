@@ -97,6 +97,21 @@ class Storage:
         """
         self._write_json("seed_preferences.json", preferences.to_dict())
 
+    def load_status(self) -> dict[str, Any]:
+        """
+        load local synchronization status
+        :returns: stored status values
+        """
+        return dict(self._read_json("status.json", {}))
+
+    def save_status(self, status: dict[str, Any]) -> None:
+        """
+        save local synchronization status
+        :param status: synchronization status values
+        :returns: nothing
+        """
+        self._write_json("status.json", status)
+
     def load_feedback(self) -> dict[str, str]:
         """
         load repository feedback

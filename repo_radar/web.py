@@ -1,0 +1,240 @@
+"""local FastAPI application for Repo Radar"""
+
+from __future__ import annotations
+
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
+
+from .discovery import generate_recommendations
+from .feedback import record_feedback
+from .github_client import GitHubClient, GitHubError
+from .models import Recommendation, SeedPreferences
+from .profile import build_profile
+from .storage import Storage
+
+STATIC_DIRECTORY = Path(__file__).parent / "static"
+
+
+class PreferencesRequest(BaseModel):
+    """manual preference update payload"""
+
+    languages: list[str] = Field(default_factory=list)
+    topics: list[str] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list)
+
+
+class FeedbackRequest(BaseModel):
+    """local recommendation feedback payload"""
+
+    repository: str
+    classification: str
+
+
+def _storage() -> Storage:
+    """
+    create storage for the configured private data directory
+    :returns: local storage manager
+    """
+    return Storage(os.environ.get("REPO_RADAR_DATA_DIR", "data"))
+
+
+def _clean_values(values: list[str], lowercase: bool = False) -> list[str]:
+    """
+    clean and deduplicate preference values
+    :param values: submitted preference values
+    :param lowercase: whether to normalize values to lowercase
+    :returns: cleaned unique values
+    """
+    cleaned = [value.strip() for value in values if value.strip()]
+    if lowercase:
+        cleaned = [value.lower() for value in cleaned]
+    unique: dict[str, str] = {}
+    for value in cleaned:
+        unique.setdefault(value.lower(), value)
+    return list(unique.values())
+
+
+def _safe_error(error: Exception) -> str:
+    """
+    remove configured credentials from an error message
+    :param error: application error
+    :returns: safe user facing error message
+    """
+    message = str(error)
+    token = os.environ.get("GITHUB_TOKEN")
+    return message.replace(token, "[redacted]") if token else message
+
+
+def _recommendation_data(recommendation: Recommendation) -> dict[str, object]:
+    """
+    serialize a recommendation for the local API
+    :param recommendation: ranked repository recommendation
+    :returns: public recommendation fields
+    """
+    repository = recommendation.repository
+    return {
+        "full_name": repository.full_name,
+        "score": round(recommendation.score, 4),
+        "description": repository.description,
+        "language": repository.language,
+        "stars": repository.stars,
+        "url": repository.url,
+        "topics": repository.topics,
+        "explanation": recommendation.explanation,
+    }
+
+
+def create_app() -> FastAPI:
+    """
+    create the local Repo Radar FastAPI application
+    :returns: configured FastAPI application
+    """
+    application = FastAPI(title="Repo Radar", docs_url=None, redoc_url=None)
+    application.mount("/static", StaticFiles(directory=STATIC_DIRECTORY), name="static")
+
+    @application.get("/", include_in_schema=False)
+    def index() -> FileResponse:
+        """
+        serve the local web interface
+        :returns: frontend HTML response
+        """
+        return FileResponse(STATIC_DIRECTORY / "index.html")
+
+    @application.get("/api/profile")
+    def get_profile() -> dict[str, object]:
+        """
+        return the current combined preference profile
+        :returns: profile and local preference counts
+        """
+        storage = _storage()
+        starred = storage.load_repositories()
+        seeds = storage.load_seed_preferences()
+        profile = build_profile(starred, seeds)
+        storage.save_profile(profile)
+        return {
+            **profile.to_dict(),
+            "starred_count": len(starred),
+            "seed_count": len(seeds.languages) + len(seeds.topics) + len(seeds.keywords),
+        }
+
+    @application.get("/api/preferences")
+    def get_preferences() -> dict[str, object]:
+        """
+        return stored manual seed preferences
+        :returns: seed preference fields
+        """
+        return _storage().load_seed_preferences().to_dict()
+
+    @application.post("/api/preferences")
+    def save_preferences(payload: PreferencesRequest) -> dict[str, object]:
+        """
+        replace stored manual seed preferences
+        :param payload: submitted seed preferences
+        :returns: saved seed preference fields
+        """
+        preferences = SeedPreferences(
+            languages=_clean_values(payload.languages),
+            topics=_clean_values(payload.topics, lowercase=True),
+            keywords=_clean_values(payload.keywords, lowercase=True),
+        )
+        _storage().save_seed_preferences(preferences)
+        return preferences.to_dict()
+
+    @application.post("/api/feedback")
+    def save_feedback(payload: FeedbackRequest) -> dict[str, str]:
+        """
+        persist one recommendation classification
+        :param payload: repository feedback payload
+        :returns: saved feedback confirmation
+        """
+        try:
+            record_feedback(_storage(), payload.repository, payload.classification)
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=_safe_error(error)) from error
+        return {"repository": payload.repository, "classification": payload.classification}
+
+    @application.post("/api/sync")
+    def sync_repositories() -> dict[str, object]:
+        """
+        refresh the local starred repository cache
+        :returns: synchronization result
+        """
+        try:
+            client = GitHubClient()
+            owner = client.get_authenticated_user()
+            repositories = client.get_starred_repositories()
+            storage = _storage()
+            storage.save_repositories(repositories)
+            last_sync = datetime.now(timezone.utc).isoformat()
+            storage.save_status({"authenticated_user": owner, "last_sync": last_sync})
+            return {"authenticated_user": owner, "starred_count": len(repositories), "last_sync": last_sync}
+        except (GitHubError, RuntimeError, ValueError) as error:
+            raise HTTPException(status_code=502, detail=_safe_error(error)) from error
+
+    @application.get("/api/status")
+    def get_status() -> dict[str, object]:
+        """
+        return useful local synchronization state
+        :returns: local status without credentials
+        """
+        storage = _storage()
+        status = storage.load_status()
+        seeds = storage.load_seed_preferences()
+        return {
+            "authenticated_user": status.get("authenticated_user"),
+            "last_sync": status.get("last_sync"),
+            "starred_count": len(storage.load_repositories()),
+            "has_seed_preferences": seeds.has_signals(),
+        }
+
+    @application.get("/api/recommendations")
+    def get_recommendations(
+        limit: int = Query(default=10, ge=1, le=50),
+        language: str | None = None,
+        min_stars: int = Query(default=0, ge=0),
+        max_stars: int | None = Query(default=None, ge=0),
+        hidden_gems: bool = False,
+    ) -> dict[str, object]:
+        """
+        discover and return filtered ranked recommendations
+        :param limit: maximum results to return
+        :param language: optional primary language filter
+        :param min_stars: minimum repository star count
+        :param max_stars: optional maximum repository star count
+        :param hidden_gems: whether to limit results to smaller repositories
+        :returns: recommendation results and empty state
+        """
+        storage = _storage()
+        starred = storage.load_repositories()
+        profile = build_profile(starred, storage.load_seed_preferences())
+        if not profile.languages and not profile.topics and not profile.keywords:
+            return {"recommendations": [], "message": "No preference signals are available yet"}
+        try:
+            client = GitHubClient()
+            owner = client.get_authenticated_user()
+            recommendations = generate_recommendations(
+                client, profile, starred, owner, storage.load_feedback(), 50
+            )
+        except (GitHubError, RuntimeError, ValueError) as error:
+            raise HTTPException(status_code=502, detail=_safe_error(error)) from error
+        maximum = 1000 if hidden_gems and max_stars is None else max_stars
+        filtered = [
+            recommendation
+            for recommendation in recommendations
+            if (not language or recommendation.repository.language == language)
+            and recommendation.repository.stars >= min_stars
+            and (maximum is None or recommendation.repository.stars <= maximum)
+        ][:limit]
+        message = None if filtered else "No eligible recommendations found"
+        return {"recommendations": [_recommendation_data(item) for item in filtered], "message": message}
+
+    return application
+
+
+app = create_app()

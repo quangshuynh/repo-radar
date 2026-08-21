@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from .github_client import GitHubClient
-from .models import PreferenceProfile, Repository
+from .models import PreferenceProfile, Recommendation, Repository
+from .ranking import rank_candidates
 
 
 def build_search_queries(profile: PreferenceProfile, limit: int = 8) -> list[str]:
@@ -75,3 +76,28 @@ def discover_candidates(
     for query in build_search_queries(profile):
         candidates.extend(client.search_repositories(query, per_query))
     return deduplicate_candidates(candidates)
+
+
+def generate_recommendations(
+    client: GitHubClient,
+    profile: PreferenceProfile,
+    starred: list[Repository],
+    owner: str,
+    feedback: dict[str, str],
+    limit: int = 10,
+) -> list[Recommendation]:
+    """
+    generate recommendations through the shared discovery and ranking pipeline
+    :param client: authenticated GitHub client
+    :param profile: current preference profile
+    :param starred: cached starred repositories
+    :param owner: authenticated GitHub login
+    :param feedback: prior repository classifications
+    :param limit: maximum recommendations
+    :returns: ranked eligible recommendations
+    """
+    discovered = discover_candidates(client, profile)
+    candidates = filter_candidates(
+        discovered, {item.full_name for item in starred}, owner, feedback
+    )
+    return rank_candidates(candidates, profile, max(1, limit))

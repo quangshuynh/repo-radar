@@ -5,13 +5,13 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Callable
+from datetime import datetime, timezone
 
-from .discovery import discover_candidates, filter_candidates
+from .discovery import generate_recommendations
 from .feedback import record_feedback
 from .github_client import GitHubClient, GitHubError
 from .models import PreferenceProfile, Recommendation, SeedPreferences
 from .profile import build_profile
-from .ranking import rank_candidates
 from .storage import Storage
 
 
@@ -26,6 +26,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("init", help="set manual seed preferences")
     subparsers.add_parser("sync", help="refresh starred repository metadata")
     subparsers.add_parser("profile", help="build and display your preference profile")
+    subparsers.add_parser("web", help="start the local web interface")
     recommend = subparsers.add_parser("recommend", help="discover and rank repositories")
     recommend.add_argument("--limit", type=int, default=10, help="number of recommendations")
     feedback = subparsers.add_parser("feedback", help="classify a recommendation locally")
@@ -132,6 +133,9 @@ def run_sync(storage: Storage) -> int:
     owner = client.get_authenticated_user()
     repositories = client.get_starred_repositories()
     storage.save_repositories(repositories)
+    storage.save_status(
+        {"authenticated_user": owner, "last_sync": datetime.now(timezone.utc).isoformat()}
+    )
     print(f"Cached {len(repositories)} starred repositories for {owner}")
     return 0
 
@@ -165,9 +169,21 @@ def run_recommend(storage: Storage, limit: int) -> int:
         return 0
     client = GitHubClient()
     owner = client.get_authenticated_user()
-    discovered = discover_candidates(client, profile)
-    candidates = filter_candidates(discovered, {item.full_name for item in starred}, owner, storage.load_feedback())
-    print_recommendations(rank_candidates(candidates, profile, max(1, limit)))
+    recommendations = generate_recommendations(
+        client, profile, starred, owner, storage.load_feedback(), limit
+    )
+    print_recommendations(recommendations)
+    return 0
+
+
+def run_web() -> int:
+    """
+    start the local Repo Radar web interface
+    :returns: process exit code
+    """
+    import uvicorn
+
+    uvicorn.run("repo_radar.web:app", host="127.0.0.1", port=8000)
     return 0
 
 
@@ -188,6 +204,8 @@ def main(arguments: list[str] | None = None) -> int:
             return run_profile(storage)
         if parsed.command == "recommend":
             return run_recommend(storage, parsed.limit)
+        if parsed.command == "web":
+            return run_web()
         record_feedback(storage, parsed.repository, parsed.classification)
         print(f"Recorded {parsed.classification.replace('-', ' ')} for {parsed.repository}")
         return 0
