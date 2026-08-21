@@ -52,7 +52,9 @@ def _similarity(left: Repository, right: Repository) -> float:
     return 0.7 * topic_score + 0.3 * language_score
 
 
-def score_repository(repository: Repository, profile: PreferenceProfile, now: datetime | None = None) -> tuple[float, str]:
+def score_repository(
+    repository: Repository, profile: PreferenceProfile, now: datetime | None = None
+) -> tuple[float, str]:
     """
     calculate a candidate relevance score and explanation
     :param repository: candidate repository
@@ -60,21 +62,44 @@ def score_repository(repository: Repository, profile: PreferenceProfile, now: da
     :param now: optional reference time for deterministic scoring
     :returns: raw score and explanation
     """
-    topic_matches = [(topic, profile.topics.get(topic.lower(), 0.0)) for topic in repository.topics]
+    topic_matches = [
+        (topic, profile.topics.get(topic.lower(), 0.0)) for topic in repository.topics
+    ]
     topic_score = sum(score for _, score in topic_matches[:4]) / 4
     language_score = profile.languages.get(repository.language or "", 0.0)
-    keyword_matches = [(word, profile.keywords.get(word, 0.0)) for word in set(extract_keywords(repository.description))]
+    keyword_matches = [
+        (word, profile.keywords.get(word, 0.0))
+        for word in set(extract_keywords(repository.description))
+    ]
     keyword_score = sum(score for _, score in keyword_matches[:5]) / 5
     quality_score = min(1.0, math.log10(repository.stars + repository.forks * 2 + 1) / 4)
     activity_score = _activity_score(repository, now or datetime.now(timezone.utc))
-    raw = 0.38 * topic_score + 0.25 * language_score + 0.17 * keyword_score + 0.1 * activity_score + 0.1 * quality_score
+    raw = (
+        0.38 * topic_score
+        + 0.25 * language_score
+        + 0.17 * keyword_score
+        + 0.1 * activity_score
+        + 0.1 * quality_score
+    )
     reasons: list[str] = []
     if language_score:
         reasons.append(repository.language or "")
-    reasons.extend(topic for topic, score in sorted(topic_matches, key=lambda item: item[1], reverse=True) if score > 0) 
-    reasons.extend(word for word, score in sorted(keyword_matches, key=lambda item: item[1], reverse=True) if score > 0)
+    reasons.extend(
+        topic
+        for topic, score in sorted(topic_matches, key=lambda item: item[1], reverse=True)
+        if score > 0
+    )
+    reasons.extend(
+        word
+        for word, score in sorted(keyword_matches, key=lambda item: item[1], reverse=True)
+        if score > 0
+    )
     reasons = list(dict.fromkeys(reasons))[:3]
-    explanation = "strong match for " + ", ".join(reasons) if reasons else "active repository with useful quality signals"
+    explanation = (
+        "strong match for " + ", ".join(reasons)
+        if reasons
+        else "active repository with useful quality signals"
+    )
     return min(1.0, raw), explanation
 
 
@@ -95,7 +120,12 @@ def rank_candidates(
     while remaining and len(selected) < limit:
         best = max(
             remaining,
-            key=lambda item: item[1] - 0.2 * max((_similarity(item[0], chosen.repository) for chosen in selected), default=0.0),
+            key=lambda item: item[1]
+            - 0.2
+            * max(
+                (_similarity(item[0], chosen.repository) for chosen in selected),
+                default=0.0,
+            ),
         )
         novelty_penalty = 0.2 * max((_similarity(best[0], chosen.repository) for chosen in selected), default=0.0)
         selected.append(Recommendation(best[0], max(0.0, best[1] - novelty_penalty), best[2]))

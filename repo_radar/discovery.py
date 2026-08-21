@@ -45,7 +45,11 @@ def filter_candidates(
     :param feedback: prior repository classifications
     :returns: eligible candidate repositories
     """
-    excluded_feedback = {name.lower() for name, value in feedback.items() if value in {"not interested", "blocked", "starred"}}
+    excluded_feedback = {
+        name.lower()
+        for name, value in feedback.items()
+        if value in {"not interested", "blocked", "starred"}
+    }
     starred = {name.lower() for name in starred_names}
     return [
         repository
@@ -57,7 +61,9 @@ def filter_candidates(
     ]
 
 
-def discover_candidates(client: GitHubClient, profile: PreferenceProfile, per_query: int = 30) -> list[Repository]:
+def discover_candidates(
+    client: GitHubClient, profile: PreferenceProfile, per_query: int = 30
+) -> list[Repository]:
     """
     execute focused searches and combine their results
     :param client: authenticated GitHub client

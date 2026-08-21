@@ -50,6 +50,16 @@ def test_starred_api_interaction_is_mocked(monkeypatch) -> None:
     :returns: nothing
     """
     payload = [{"full_name": "a/b", "owner": {"login": "a"}, "topics": [], "stargazers_count": 2}]
-    monkeypatch.setattr("urllib.request.urlopen", lambda request, timeout: FakeResponse(payload))
+
+    def fake_urlopen(request, timeout):
+        """
+        return the mocked GitHub response
+        :param request: outgoing URL request
+        :param timeout: outgoing request timeout
+        :returns: fake API response
+        """
+        return FakeResponse(payload)
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
     repositories = GitHubClient("test-token").get_starred_repositories()
     assert repositories[0].full_name == "a/b"

@@ -20,7 +20,7 @@ Repo Radar requires Python 3.11 or newer and a GitHub personal access token that
 ```bash
 python -m venv .venv
 # Activate the environment for your shell
-python -m pip install -e ".[dev]"
+python -m pip install -r requirements.txt
 ```
 
 Set the token in your environment. The included `.env.example` is a template only; Repo Radar does not automatically load `.env` files.

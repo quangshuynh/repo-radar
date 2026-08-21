@@ -12,7 +12,14 @@ def test_relevant_small_repository_beats_irrelevant_popular_one() -> None:
     :returns: nothing
     """
     profile = PreferenceProfile({"Python": 1.0}, {"automation": 1.0}, {"workflow": 1.0})
-    relevant = Repository("small/relevant", "workflow helper", "Python", ["automation"], 30, pushed_at="2025-12-01T00:00:00Z")
+    relevant = Repository(
+        "small/relevant",
+        "workflow helper",
+        "Python",
+        ["automation"],
+        30,
+        pushed_at="2025-12-01T00:00:00Z",
+    )
     popular = Repository("huge/unrelated", "unrelated game", "C++", ["game"], 500000, pushed_at="2025-12-01T00:00:00Z")
     ranked = rank_candidates([popular, relevant], profile, now=NOW)
     assert ranked[0].repository == relevant
