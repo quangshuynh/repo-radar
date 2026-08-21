@@ -10,7 +10,8 @@ from datetime import datetime, timezone
 from .discovery import generate_recommendations
 from .feedback import record_feedback
 from .github_client import GitHubClient, GitHubError
-from .models import PreferenceProfile, Recommendation, SeedPreferences
+from .gitprofilelens import GitProfileLensError, import_profile
+from .models import ImportedProfile, PreferenceProfile, Recommendation, SeedPreferences
 from .profile import build_profile
 from .storage import Storage
 
@@ -24,6 +25,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--data-dir", default="data", help="local private data directory")
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("init", help="set manual seed preferences")
+    profile_import = subparsers.add_parser("import-profile", help="import public repositories from GitProfileLens")
+    profile_import.add_argument("username", nargs="?", help="GitHub username to import")
     subparsers.add_parser("sync", help="refresh starred repository metadata")
     subparsers.add_parser("profile", help="build and display your preference profile")
     subparsers.add_parser("web", help="start the local web interface")
@@ -75,6 +78,26 @@ def run_init(storage: Storage, input_function: Callable[[str], str] = input) -> 
     return 0
 
 
+def run_import_profile(
+    storage: Storage,
+    username: str | None,
+    input_function: Callable[[str], str] = input,
+) -> int:
+    """
+    import a public repository profile from GitProfileLens
+    :param storage: local storage manager
+    :param username: optional GitHub username
+    :param input_function: function used to collect a missing username
+    :returns: process exit code
+    """
+    selected_username = username or input_function("GitHub username:\n> ")
+    profile = import_profile(selected_username, storage)
+    pinned_count = sum(repository.pinned for repository in profile.repositories)
+    print(f"Imported {len(profile.repositories)} public repositories for {profile.username}")
+    print(f"Pinned repositories: {pinned_count}")
+    return 0
+
+
 def _print_signals(title: str, values: dict[str, float], limit: int = 10) -> None:
     """
     print a section of normalized profile signals
@@ -102,6 +125,21 @@ def print_profile(profile: PreferenceProfile) -> None:
     _print_signals("Topics", profile.topics)
     _print_signals("Description keywords", profile.keywords)
     print(f"\nMedian stars             {profile.median_stars:.0f}")
+
+
+def print_preference_sources(storage: Storage, imported: ImportedProfile | None) -> None:
+    """
+    display active preference source counts
+    :param storage: local storage manager
+    :param imported: optional GitProfileLens profile
+    :returns: nothing
+    """
+    seeds = storage.load_seed_preferences()
+    print("\nPreference sources\n")
+    print(f"Starred repositories        {len(storage.load_repositories())}")
+    print(f"GitProfileLens repositories {len(imported.repositories) if imported else 0}")
+    print(f"Manual seed preferences     {'yes' if seeds.has_signals() else 'no'}")
+    print(f"Feedback records            {len(storage.load_feedback())}")
 
 
 def print_recommendations(recommendations: list[Recommendation]) -> None:
@@ -133,9 +171,7 @@ def run_sync(storage: Storage) -> int:
     owner = client.get_authenticated_user()
     repositories = client.get_starred_repositories()
     storage.save_repositories(repositories)
-    storage.save_status(
-        {"authenticated_user": owner, "last_sync": datetime.now(timezone.utc).isoformat()}
-    )
+    storage.save_status({"authenticated_user": owner, "last_sync": datetime.now(timezone.utc).isoformat()})
     print(f"Cached {len(repositories)} starred repositories for {owner}")
     return 0
 
@@ -147,9 +183,11 @@ def run_profile(storage: Storage) -> int:
     :returns: process exit code
     """
     repositories = storage.load_repositories()
-    profile = build_profile(repositories, storage.load_seed_preferences())
+    imported = storage.load_imported_profile()
+    profile = build_profile(repositories, storage.load_seed_preferences(), imported)
     storage.save_profile(profile)
     print_profile(profile)
+    print_preference_sources(storage, imported)
     return 0
 
 
@@ -161,16 +199,17 @@ def run_recommend(storage: Storage, limit: int) -> int:
     :returns: process exit code
     """
     starred = storage.load_repositories()
-    profile = build_profile(starred, storage.load_seed_preferences())
+    imported = storage.load_imported_profile()
+    profile = build_profile(starred, storage.load_seed_preferences(), imported)
     storage.save_profile(profile)
     if not profile.languages and not profile.topics and not profile.keywords:
         print("No preference signals are available yet.")
-        print("Run `python -m repo_radar init` to add interests or star some repositories and run sync.")
+        print("Run `python -m repo_radar init`, import a public profile, or star some repositories and run sync.")
         return 0
     client = GitHubClient()
     owner = client.get_authenticated_user()
     recommendations = generate_recommendations(
-        client, profile, starred, owner, storage.load_feedback(), limit
+        client, profile, starred, owner, storage.load_feedback(), limit, imported
     )
     print_recommendations(recommendations)
     return 0
@@ -198,6 +237,8 @@ def main(arguments: list[str] | None = None) -> int:
     try:
         if parsed.command == "init":
             return run_init(storage)
+        if parsed.command == "import-profile":
+            return run_import_profile(storage, parsed.username)
         if parsed.command == "sync":
             return run_sync(storage)
         if parsed.command == "profile":
@@ -209,6 +250,6 @@ def main(arguments: list[str] | None = None) -> int:
         record_feedback(storage, parsed.repository, parsed.classification)
         print(f"Recorded {parsed.classification.replace('-', ' ')} for {parsed.repository}")
         return 0
-    except (GitHubError, RuntimeError, ValueError) as error:
+    except (GitHubError, GitProfileLensError, RuntimeError, ValueError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1

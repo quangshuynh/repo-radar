@@ -11,6 +11,8 @@ Repo Radar is a private Python CLI that learns from repositories you have starre
 - Ranks by relevance, activity, modest quality signals, and result novelty
 - Stores interested, not interested, starred, and blocked feedback locally
 - Supports manual seed interests when no starred repositories are available
+- Imports public portfolio signals from an optional GitProfileLens Markdown report
+- Provides a local FastAPI web interface while preserving every CLI command
 
 Repo Radar does not automatically star repositories.
 
@@ -40,16 +42,22 @@ $env:GITHUB_TOKEN = "your_token_here"
 
 ```bash
 python -m repo_radar init
+python -m repo_radar import-profile quangshuynh
 python -m repo_radar sync
 python -m repo_radar profile
 python -m repo_radar recommend
 python -m repo_radar recommend --limit 5
 python -m repo_radar feedback owner/repository not-interested
+python -m repo_radar web
 ```
 
-Run `init` to enter comma-separated languages, topics, and optional keywords. Running it again replaces the previous seed preferences. Each manual preference contributes two count units when combined with signals inferred from starred repositories.
+Run `init` to enter comma-separated languages, topics, and optional keywords. Running it again replaces the previous seed preferences.
+
+Run `import-profile` with a username, or omit it to be prompted, to import a structured GitProfileLens Markdown report. A starred repository contributes `1.00`, a pinned imported repository contributes `0.80`, another active imported repository contributes `0.35`, and each manual seed contributes `0.60`. Archived and forked imported repositories contribute nothing.
 
 Run `sync` again whenever you want to refresh the local starred repository cache.
+
+Run `web`, then open `http://127.0.0.1:8000`. The web UI supports discovery, profile review, preferences, GitProfileLens import, feedback, and starred repository sync. The CLI remains fully supported.
 
 Example recommendation:
 
@@ -66,8 +74,8 @@ Example recommendation:
 
 ## Privacy
 
-Starred repositories, seed preferences, derived preferences, and feedback are JSON files under `data/`. That directory, `.env`, and common local environment files are ignored by Git. Data is sent only to GitHub through authenticated REST API requests needed for synchronization and discovery. There is no telemetry, cloud storage, or third-party recommendation service.
+Starred repositories, imported public profile data, seed preferences, derived preferences, and feedback are JSON files under `data/`. That directory, `.env`, and common local environment files are ignored by Git. The web server binds only to `127.0.0.1` and never returns the GitHub token. Data is sent only to GitHub and the optional GitProfileLens import URL for requested operations. There is no telemetry, cloud storage, or third-party recommendation service.
 
 ## Current limitations
 
-The MVP uses weighted counts and heuristics, not machine learning. Search coverage depends on the strongest profile signals and GitHub search limits. Feedback is entered manually, positive feedback does not yet change profile weights, and recommendations are generated fresh rather than cached.
+The MVP uses weighted counts and heuristics, not machine learning. Search coverage depends on the strongest profile signals and GitHub search limits. Feedback is entered manually, positive feedback does not yet change profile weights, and recommendations are generated fresh rather than cached. GitProfileLens import remains optional and preserves the last valid import when its Markdown report is unavailable or malformed.

@@ -38,12 +38,24 @@ def test_filter_candidates_excludes_ineligible_results() -> None:
     :returns: nothing
     """
     candidates = [
-        Repository("good/repo", owner="good"), Repository("me/mine", owner="me"),
-        Repository("old/archive", archived=True, owner="old"), Repository("seen/star", owner="seen"),
+        Repository("good/repo", owner="good"),
+        Repository("me/mine", owner="me"),
+        Repository("old/archive", archived=True, owner="old"),
+        Repository("seen/star", owner="seen"),
         Repository("no/thanks", owner="no"),
     ]
     result = filter_candidates(candidates, {"seen/star"}, "ME", {"no/thanks": "not interested"})
     assert [item.full_name for item in result] == ["good/repo"]
+
+
+def test_filter_candidates_excludes_imported_owner() -> None:
+    """
+    an imported profile owner is excluded before token identity is available
+    :returns: nothing
+    """
+    candidates = [Repository("portfolio/project", owner="portfolio"), Repository("other/repo", owner="other")]
+    result = filter_candidates(candidates, set(), "token-user", {}, {"portfolio"})
+    assert [item.full_name for item in result] == ["other/repo"]
 
 
 def test_discovery_uses_multiple_queries_and_deduplicates() -> None:

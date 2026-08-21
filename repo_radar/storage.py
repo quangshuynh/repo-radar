@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .models import PreferenceProfile, Repository, SeedPreferences
+from .models import ImportedProfile, PreferenceProfile, Repository, SeedPreferences
 
 
 class Storage:
@@ -111,6 +111,22 @@ class Storage:
         :returns: nothing
         """
         self._write_json("status.json", status)
+
+    def load_imported_profile(self) -> ImportedProfile | None:
+        """
+        load the last valid GitProfileLens profile
+        :returns: imported profile or none
+        """
+        value = self._read_json("gitprofilelens_profile.json", None)
+        return ImportedProfile.from_dict(value) if value else None
+
+    def save_imported_profile(self, profile: ImportedProfile) -> None:
+        """
+        save a parsed GitProfileLens profile
+        :param profile: imported profile to persist
+        :returns: nothing
+        """
+        self._write_json("gitprofilelens_profile.json", profile.to_dict())
 
     def load_feedback(self) -> dict[str, str]:
         """

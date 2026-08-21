@@ -124,6 +124,76 @@ class SeedPreferences:
 
 
 @dataclass(slots=True)
+class ImportedRepository:
+    """public owned repository imported from GitProfileLens"""
+
+    name: str
+    description: str | None = None
+    url: str = ""
+    pinned: bool = False
+    created_at: str | None = None
+    updated_at: str | None = None
+    pushed_at: str | None = None
+    language: str | None = None
+    topics: list[str] = field(default_factory=list)
+    stars: int = 0
+    forks: int = 0
+    archived: bool = False
+    is_fork: bool = False
+
+    @classmethod
+    def from_dict(cls, value: dict[str, Any]) -> ImportedRepository:
+        """
+        create an imported repository from persisted data
+        :param value: persisted imported repository dictionary
+        :returns: imported repository
+        """
+        return cls(**value)
+
+    def to_dict(self) -> dict[str, Any]:
+        """
+        convert an imported repository to JSON compatible data
+        :returns: imported repository dictionary
+        """
+        return asdict(self)
+
+
+@dataclass(slots=True)
+class ImportedProfile:
+    """structured GitProfileLens public repository profile"""
+
+    username: str
+    public_repository_count: int = 0
+    fetched_at: str = ""
+    source_url: str = ""
+    repositories: list[ImportedRepository] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, value: dict[str, Any]) -> ImportedProfile:
+        """
+        create an imported profile from persisted data
+        :param value: persisted imported profile dictionary
+        :returns: imported profile
+        """
+        data = dict(value)
+        data["repositories"] = [ImportedRepository.from_dict(repository) for repository in data.get("repositories", [])]
+        return cls(**data)
+
+    def to_dict(self) -> dict[str, Any]:
+        """
+        convert an imported profile to JSON compatible data
+        :returns: imported profile dictionary
+        """
+        return {
+            "username": self.username,
+            "public_repository_count": self.public_repository_count,
+            "fetched_at": self.fetched_at,
+            "source_url": self.source_url,
+            "repositories": [repository.to_dict() for repository in self.repositories],
+        }
+
+
+@dataclass(slots=True)
 class Recommendation:
     """ranked repository with a transparent explanation"""
 

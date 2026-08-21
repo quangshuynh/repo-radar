@@ -1,5 +1,5 @@
-from repo_radar.cli import run_init, run_profile, run_recommend
-from repo_radar.models import Repository, SeedPreferences
+from repo_radar.cli import run_import_profile, run_init, run_profile, run_recommend
+from repo_radar.models import ImportedProfile, ImportedRepository, Repository, SeedPreferences
 from repo_radar.storage import Storage
 
 
@@ -94,9 +94,7 @@ def test_init_replaces_and_persists_seed_preferences(tmp_path) -> None:
     )
 
 
-def test_recommend_uses_only_manual_preferences_and_filters_candidates(
-    tmp_path, monkeypatch, capsys
-) -> None:
+def test_recommend_uses_only_manual_preferences_and_filters_candidates(tmp_path, monkeypatch, capsys) -> None:
     """
     seed-only discovery uses existing ranking and filtering behavior
     :param tmp_path: pytest temporary directory
@@ -124,3 +122,34 @@ def test_recommend_uses_only_manual_preferences_and_filters_candidates(
     assert "empty-user/owned" not in output
     assert "old/archived" not in output
     assert "blocked/repo" not in output
+
+
+def test_cli_import_profile_uses_shared_importer(tmp_path, monkeypatch, capsys) -> None:
+    """
+    the CLI imports and summarizes a GitProfileLens profile
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :param capsys: pytest output capture fixture
+    :returns: nothing
+    """
+    storage = Storage(tmp_path)
+
+    def fake_import(username: str, target_storage: Storage) -> ImportedProfile:
+        """
+        save and return a mocked imported profile
+        :param username: requested username
+        :param target_storage: local storage manager
+        :returns: mocked imported profile
+        """
+        profile = ImportedProfile(
+            username,
+            2,
+            repositories=[ImportedRepository("one", pinned=True), ImportedRepository("two")],
+        )
+        target_storage.save_imported_profile(profile)
+        return profile
+
+    monkeypatch.setattr("repo_radar.cli.import_profile", fake_import)
+    assert run_import_profile(storage, "example") == 0
+    assert storage.load_imported_profile() is not None
+    assert "Imported 2 public repositories" in capsys.readouterr().out

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from .github_client import GitHubClient
-from .models import PreferenceProfile, Recommendation, Repository
+from .models import ImportedProfile, PreferenceProfile, Recommendation, Repository
 from .ranking import rank_candidates
 
 
@@ -36,7 +36,11 @@ def deduplicate_candidates(repositories: list[Repository]) -> list[Repository]:
 
 
 def filter_candidates(
-    repositories: list[Repository], starred_names: set[str], owner: str, feedback: dict[str, str]
+    repositories: list[Repository],
+    starred_names: set[str],
+    owner: str,
+    feedback: dict[str, str],
+    excluded_owners: set[str] | None = None,
 ) -> list[Repository]:
     """
     remove ineligible and previously rejected candidates
@@ -44,27 +48,25 @@ def filter_candidates(
     :param starred_names: full names already starred by the user
     :param owner: authenticated GitHub login
     :param feedback: prior repository classifications
+    :param excluded_owners: additional repository owners to exclude
     :returns: eligible candidate repositories
     """
     excluded_feedback = {
-        name.lower()
-        for name, value in feedback.items()
-        if value in {"not interested", "blocked", "starred"}
+        name.lower() for name, value in feedback.items() if value in {"not interested", "blocked", "starred"}
     }
     starred = {name.lower() for name in starred_names}
+    owners = {owner.lower(), *(value.lower() for value in excluded_owners or set())}
     return [
         repository
         for repository in deduplicate_candidates(repositories)
         if repository.full_name.lower() not in starred
         and repository.full_name.lower() not in excluded_feedback
-        and repository.owner.lower() != owner.lower()
+        and repository.owner.lower() not in owners
         and not repository.archived
     ]
 
 
-def discover_candidates(
-    client: GitHubClient, profile: PreferenceProfile, per_query: int = 30
-) -> list[Repository]:
+def discover_candidates(client: GitHubClient, profile: PreferenceProfile, per_query: int = 30) -> list[Repository]:
     """
     execute focused searches and combine their results
     :param client: authenticated GitHub client
@@ -85,6 +87,7 @@ def generate_recommendations(
     owner: str,
     feedback: dict[str, str],
     limit: int = 10,
+    imported_profile: ImportedProfile | None = None,
 ) -> list[Recommendation]:
     """
     generate recommendations through the shared discovery and ranking pipeline
@@ -94,10 +97,16 @@ def generate_recommendations(
     :param owner: authenticated GitHub login
     :param feedback: prior repository classifications
     :param limit: maximum recommendations
+    :param imported_profile: optional owned repository profile to exclude
     :returns: ranked eligible recommendations
     """
     discovered = discover_candidates(client, profile)
-    candidates = filter_candidates(
-        discovered, {item.full_name for item in starred}, owner, feedback
-    )
+    excluded_names = {item.full_name for item in starred}
+    excluded_owners: set[str] = set()
+    if imported_profile:
+        excluded_names.update(
+            f"{imported_profile.username}/{repository.name}" for repository in imported_profile.repositories
+        )
+        excluded_owners.add(imported_profile.username)
+    candidates = filter_candidates(discovered, excluded_names, owner, feedback, excluded_owners)
     return rank_candidates(candidates, profile, max(1, limit))

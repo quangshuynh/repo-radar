@@ -6,13 +6,38 @@ import re
 import statistics
 from collections import Counter
 
-from .models import PreferenceProfile, Repository, SeedPreferences
+from .models import ImportedProfile, PreferenceProfile, Repository, SeedPreferences
 
-SEED_SIGNAL_WEIGHT = 2.0
+STARRED_REPOSITORY_WEIGHT = 1.0
+PINNED_REPOSITORY_WEIGHT = 0.8
+OWNED_REPOSITORY_WEIGHT = 0.35
+SEED_SIGNAL_WEIGHT = 0.6
 
 STOP_WORDS = {
-    "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "in", "is", "it",
-    "of", "on", "or", "that", "the", "this", "to", "with", "your", "using", "tool",
+    "a",
+    "an",
+    "and",
+    "are",
+    "as",
+    "at",
+    "be",
+    "by",
+    "for",
+    "from",
+    "in",
+    "is",
+    "it",
+    "of",
+    "on",
+    "or",
+    "that",
+    "the",
+    "this",
+    "to",
+    "with",
+    "your",
+    "using",
+    "tool",
 }
 
 
@@ -39,17 +64,33 @@ def extract_keywords(description: str | None) -> list[str]:
 
 
 def build_profile(
-    repositories: list[Repository], seed_preferences: SeedPreferences | None = None
+    repositories: list[Repository],
+    seed_preferences: SeedPreferences | None = None,
+    imported_profile: ImportedProfile | None = None,
 ) -> PreferenceProfile:
     """
     build a normalized profile from starred repositories and manual preferences
     :param repositories: repositories used as positive preferences
     :param seed_preferences: optional manually entered interests
+    :param imported_profile: optional GitProfileLens public repository profile
     :returns: calculated preference profile
     """
-    languages = Counter(repository.language for repository in repositories if repository.language)
-    topics = Counter(topic.lower() for repository in repositories for topic in repository.topics)
-    keywords = Counter(word for repository in repositories for word in set(extract_keywords(repository.description)))
+    languages: Counter[str] = Counter()
+    topics: Counter[str] = Counter()
+    keywords: Counter[str] = Counter()
+    for repository in repositories:
+        if repository.language:
+            languages[repository.language] += STARRED_REPOSITORY_WEIGHT
+        topics.update({topic.lower(): STARRED_REPOSITORY_WEIGHT for topic in repository.topics})
+        keywords.update({word: STARRED_REPOSITORY_WEIGHT for word in set(extract_keywords(repository.description))})
+    for repository in imported_profile.repositories if imported_profile else []:
+        if repository.archived or repository.is_fork:
+            continue
+        weight = PINNED_REPOSITORY_WEIGHT if repository.pinned else OWNED_REPOSITORY_WEIGHT
+        if repository.language:
+            languages[repository.language] += weight
+        topics.update({topic.lower(): weight for topic in repository.topics})
+        keywords.update({word: weight for word in set(extract_keywords(repository.description))})
     seeds = seed_preferences or SeedPreferences()
     languages.update({language: SEED_SIGNAL_WEIGHT for language in seeds.languages})
     topics.update({topic.lower(): SEED_SIGNAL_WEIGHT for topic in seeds.topics})

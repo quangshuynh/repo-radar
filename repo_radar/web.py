@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from .discovery import generate_recommendations
 from .feedback import record_feedback
 from .github_client import GitHubClient, GitHubError
+from .gitprofilelens import GitProfileLensError, import_profile
 from .models import Recommendation, SeedPreferences
 from .profile import build_profile
 from .storage import Storage
@@ -34,6 +35,12 @@ class FeedbackRequest(BaseModel):
 
     repository: str
     classification: str
+
+
+class ImportProfileRequest(BaseModel):
+    """GitProfileLens import payload"""
+
+    username: str
 
 
 def _storage() -> Storage:
@@ -115,12 +122,15 @@ def create_app() -> FastAPI:
         storage = _storage()
         starred = storage.load_repositories()
         seeds = storage.load_seed_preferences()
-        profile = build_profile(starred, seeds)
+        imported = storage.load_imported_profile()
+        profile = build_profile(starred, seeds, imported)
         storage.save_profile(profile)
         return {
             **profile.to_dict(),
             "starred_count": len(starred),
             "seed_count": len(seeds.languages) + len(seeds.topics) + len(seeds.keywords),
+            "imported_count": len(imported.repositories) if imported else 0,
+            "feedback_count": len(storage.load_feedback()),
         }
 
     @application.get("/api/preferences")
@@ -145,6 +155,28 @@ def create_app() -> FastAPI:
         )
         _storage().save_seed_preferences(preferences)
         return preferences.to_dict()
+
+    @application.post("/api/import-profile")
+    def import_public_profile(payload: ImportProfileRequest) -> dict[str, object]:
+        """
+        import a GitProfileLens public repository profile
+        :param payload: GitHub username import payload
+        :returns: imported profile summary
+        """
+        try:
+            profile = import_profile(payload.username, _storage())
+        except (GitProfileLensError, RuntimeError, ValueError) as error:
+            raise HTTPException(status_code=502, detail=_safe_error(error)) from error
+        active = [
+            repository for repository in profile.repositories if not repository.archived and not repository.is_fork
+        ]
+        return {
+            "username": profile.username,
+            "repository_count": len(profile.repositories),
+            "pinned_count": sum(repository.pinned for repository in profile.repositories),
+            "language_count": len({repository.language for repository in active if repository.language}),
+            "topic_count": len({topic for repository in active for topic in repository.topics}),
+        }
 
     @application.post("/api/feedback")
     def save_feedback(payload: FeedbackRequest) -> dict[str, str]:
@@ -186,11 +218,14 @@ def create_app() -> FastAPI:
         storage = _storage()
         status = storage.load_status()
         seeds = storage.load_seed_preferences()
+        imported = storage.load_imported_profile()
         return {
             "authenticated_user": status.get("authenticated_user"),
             "last_sync": status.get("last_sync"),
             "starred_count": len(storage.load_repositories()),
             "has_seed_preferences": seeds.has_signals(),
+            "imported_username": imported.username if imported else None,
+            "imported_count": len(imported.repositories) if imported else 0,
         }
 
     @application.get("/api/recommendations")
@@ -212,14 +247,15 @@ def create_app() -> FastAPI:
         """
         storage = _storage()
         starred = storage.load_repositories()
-        profile = build_profile(starred, storage.load_seed_preferences())
+        imported = storage.load_imported_profile()
+        profile = build_profile(starred, storage.load_seed_preferences(), imported)
         if not profile.languages and not profile.topics and not profile.keywords:
             return {"recommendations": [], "message": "No preference signals are available yet"}
         try:
             client = GitHubClient()
             owner = client.get_authenticated_user()
             recommendations = generate_recommendations(
-                client, profile, starred, owner, storage.load_feedback(), 50
+                client, profile, starred, owner, storage.load_feedback(), 50, imported
             )
         except (GitHubError, RuntimeError, ValueError) as error:
             raise HTTPException(status_code=502, detail=_safe_error(error)) from error
