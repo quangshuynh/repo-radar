@@ -1,6 +1,7 @@
 import io
 import json
 from email.message import Message
+from urllib.parse import parse_qs, urlparse
 
 from repo_radar.github_client import GitHubClient
 
@@ -16,6 +17,7 @@ class FakeResponse:
         """
         self.stream = io.BytesIO(json.dumps(payload).encode())
         self.headers = Message()
+        self.status = 200
 
     def __enter__(self):
         """
@@ -63,3 +65,51 @@ def test_starred_api_interaction_is_mocked(monkeypatch) -> None:
     monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
     repositories = GitHubClient("test-token").get_starred_repositories()
     assert repositories[0].full_name == "a/b"
+
+
+def test_starred_request_uses_endpoint_authentication_and_pagination(monkeypatch) -> None:
+    """
+    starred requests use the required endpoint headers and all response pages
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    requests = []
+    first_page = [
+        {
+            "full_name": f"owner/repository-{index}",
+            "owner": {"login": "owner"},
+            "topics": ["python"],
+            "stargazers_count": index,
+        }
+        for index in range(100)
+    ]
+    second_page = [
+        {
+            "full_name": "owner/repository-100",
+            "owner": {"login": "owner"},
+            "topics": [],
+            "stargazers_count": 100,
+        }
+    ]
+
+    def fake_urlopen(request, timeout):
+        """
+        return a response selected by the requested page
+        :param request: outgoing URL request
+        :param timeout: outgoing request timeout
+        :returns: fake paginated API response
+        """
+        requests.append(request)
+        page = parse_qs(urlparse(request.full_url).query)["page"][0]
+        return FakeResponse(first_page if page == "1" else second_page)
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    repositories = GitHubClient("test-token").get_starred_repositories()
+
+    assert len(repositories) == 101
+    assert urlparse(requests[0].full_url).path == "/user/starred"
+    assert parse_qs(urlparse(requests[0].full_url).query) == {"per_page": ["100"], "page": ["1"]}
+    assert requests[0].get_header("Authorization") == "Bearer test-token"
+    assert requests[0].get_header("Accept") == "application/vnd.github+json"
+    assert repositories[-1].full_name == "owner/repository-100"
+    assert repositories[-1].stars == 100

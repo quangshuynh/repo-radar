@@ -54,7 +54,14 @@ class GitHubClient:
         )
         try:
             with urllib.request.urlopen(request, timeout=30) as response:
-                return json.load(response), dict(response.headers.items())
+                status = getattr(response, "status", 200)
+                if not 200 <= status < 300:
+                    raise GitHubError(f"GitHub API request failed with status {status}")
+                try:
+                    data = json.load(response)
+                except (UnicodeDecodeError, json.JSONDecodeError) as error:
+                    raise GitHubError("GitHub API returned an invalid JSON response") from error
+                return data, dict(response.headers.items())
         except urllib.error.HTTPError as error:
             remaining = error.headers.get("X-RateLimit-Remaining")
             reset = error.headers.get("X-RateLimit-Reset")
@@ -101,7 +108,10 @@ class GitHubClient:
         fetch every repository starred by the authenticated user
         :returns: normalized starred repositories
         """
-        return [Repository.from_github(item) for item in self._paginate("/user/starred")]
+        items = self._paginate("/user/starred")
+        if any(not isinstance(item, dict) for item in items):
+            raise GitHubError("GitHub returned invalid starred repository data")
+        return [Repository.from_github(item) for item in items]
 
     def search_repositories(self, query: str, limit: int = 30) -> list[Repository]:
         """

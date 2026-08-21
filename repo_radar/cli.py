@@ -86,9 +86,17 @@ def run_sync(storage: Storage) -> int:
     :param storage: local storage manager
     :returns: process exit code
     """
-    repositories = GitHubClient().get_starred_repositories()
+    client = GitHubClient()
+    owner = client.get_authenticated_user()
+    repositories = client.get_starred_repositories()
+    if not repositories:
+        raise GitHubError(
+            f"GitHub returned no starred repositories for authenticated user {owner}. "
+            "The existing cache was not changed. Verify that the token belongs to the expected user "
+            "and has Starring read permission."
+        )
     storage.save_repositories(repositories)
-    print(f"Cached {len(repositories)} starred repositories")
+    print(f"Cached {len(repositories)} starred repositories for {owner}")
     return 0
 
 
