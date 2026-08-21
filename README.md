@@ -1,49 +1,110 @@
 # Repo Radar
 
-Repo Radar is a private Python CLI that learns from repositories you have starred on GitHub, discovers new candidates through targeted GitHub searches, and ranks them using transparent relevance and novelty signals.
+Repo Radar is a private, local-first GitHub discovery tool. It learns from repositories you star, projects you save, your public GitHub portfolio, manual interests, and ongoing feedback. It then searches GitHub and ranks repositories with transparent relevance, activity, quality, and novelty signals.
 
-## Current MVP capabilities
+![Repo Radar local interface](docs/screenshot.png)
 
-- Caches all repositories starred by the authenticated user
-- Builds normalized language, topic, and description keyword preferences
-- Runs several focused searches instead of one broad query
-- Filters archived, owned, already starred, duplicate, and rejected repositories
-- Ranks by relevance, activity, modest quality signals, and result novelty
-- Saves interested repositories for later and uses them as preference signals
-- Stars repositories from the local website through the authenticated GitHub API
-- Reviews cached GitHub stars and grouped feedback history in the local website
-- Supports undoing local feedback so dismissed repositories can become eligible again
-- Supports manual seed interests when no starred repositories are available
-- Imports public portfolio signals from the optional GitProfileLens JSON report API
-- Provides a local FastAPI web interface while preserving every CLI command
+## Features
 
-Repo Radar only stars repositories after an explicit single-repository or confirmed bulk action.
+- Discover repositories from focused GitHub searches
+- Build one preference profile from several transparent sources
+- Save interesting repositories for later
+- Star one saved repository or a confirmed batch on GitHub
+- Review the repositories in your synchronized GitHub star library
+- Block or dismiss recommendations and undo that feedback later
+- Exclude owned, archived, duplicate, saved, starred, blocked, and dismissed repositories
+- Import public portfolio signals through GitProfileLens
+- Use the local web interface or the complete command-line workflow
+- Keep tokens, preferences, and repository history on your machine
 
-## Requirements and setup
+Repo Radar never stars a repository without an explicit single-repository action or confirmed bulk action.
 
-Repo Radar requires Python 3.11 or newer and a GitHub personal access token that can read public repository data. A classic personal access token with only the `public_repo` scope is recommended for reliable public repository sync and starring. Private starred repositories require the broader `repo` scope.
+## Quick start
+
+Repo Radar requires Python 3.11 or newer.
 
 ```bash
+git clone https://github.com/quangshuynh/repo-radar.git
+cd repo-radar
 python -m venv .venv
-# Activate the environment for your shell
+```
+
+Activate the virtual environment:
+
+```powershell
+# PowerShell
+.venv\Scripts\Activate.ps1
+```
+
+```bash
+# Git Bash, macOS, or Linux
+source .venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
 python -m pip install -r requirements.txt
 ```
 
-Set the token in your environment or in a `.env` file at the project root. Repo Radar loads `.env` automatically without replacing an already exported environment value.
+Copy `.env.example` to `.env` and add a GitHub token:
 
 ```text
 GITHUB_TOKEN=your_token_here
 ```
 
-Create a classic token under GitHub Settings, Developer settings, Personal access tokens, Tokens (classic). Select only `public_repo` unless private repository access is intentionally required. Never commit the token or paste it into logs, issues, or documentation. Restart Repo Radar after changing `.env` because a running Python process keeps its current environment.
+Start the local website:
 
-PowerShell example:
-
-```powershell
-$env:GITHUB_TOKEN = "your_token_here"
+```bash
+python -m repo_radar web
 ```
 
-## Commands
+Open `http://127.0.0.1:8000`.
+
+## GitHub token setup
+
+A classic personal access token with only the `public_repo` scope is recommended for public repository sync and starring.
+
+Create one under GitHub Settings, Developer settings, Personal access tokens, Tokens (classic). Select:
+
+- `public_repo` for public repositories
+- `repo` instead only when private starred repository access is intentional
+
+Fine-grained tokens may read starred repositories successfully while GitHub still rejects star mutations with a `403` response. Repo Radar supports either token format, but the classic `public_repo` token is the reliable option for the complete workflow.
+
+Restart Repo Radar after changing `.env`. A running Python process keeps the token it loaded at startup.
+
+Never commit `.env`, paste a token into logs or issues, or expose it through screenshots. Repo Radar never returns the configured token from its API.
+
+## Preference sources
+
+All sources feed the same normalized language, topic, and description-keyword profile.
+
+| Source | Weight |
+| --- | ---: |
+| Starred repository | `1.00` |
+| Pinned GitProfileLens repository | `0.80` |
+| Saved interested repository | `0.70` |
+| Manual seed preference | `0.60` |
+| Other active GitProfileLens repository | `0.35` |
+| Archived or forked imported repository | `0.00` |
+
+Saved cards show their preference weight and signal count. Repositories with more usable language, topic, and description signals appear first in the Saved section.
+
+## Web workflow
+
+1. Add manual preferences or import a public GitProfileLens profile
+2. Sync GitHub stars
+3. Select **Find something good**
+4. Save, dismiss, block, or star recommendations
+5. Review saved repositories and the synchronized starred library
+6. Open Feedback history to undo a previous classification
+
+Sync reconciles the local Saved list with GitHub. If you star a saved repository outside Repo Radar, the next sync removes it from Saved and records it as starred locally.
+
+Clearing blocked or dismissed feedback makes that repository eligible for discovery again. Clearing interested feedback also removes the repository from Saved. Clearing a starred feedback record does not unstar it on GitHub or remove it from the synchronized starred cache.
+
+## Command-line usage
 
 ```bash
 python -m repo_radar init
@@ -56,37 +117,64 @@ python -m repo_radar feedback owner/repository not-interested
 python -m repo_radar web
 ```
 
-Run `init` to enter comma-separated languages, topics, and optional keywords. Running it again replaces the previous seed preferences.
+- `init` replaces the current comma-separated language, topic, and keyword seeds
+- `import-profile` imports the optional GitProfileLens public repository report
+- `sync` refreshes the authenticated user's starred repository cache
+- `profile` prints the merged preference profile and active source counts
+- `recommend` discovers and ranks a fresh set of eligible repositories
+- `feedback` records `interested`, `not-interested`, `starred`, or `blocked`
+- `web` starts the local FastAPI interface on `127.0.0.1:8000`
 
-Run `import-profile` with a username, or omit it to be prompted, to import a structured GitProfileLens JSON report. A starred repository contributes `1.00`, a pinned imported repository contributes `0.80`, another active imported repository contributes `0.35`, and each manual seed contributes `0.60`. Archived and forked imported repositories contribute nothing.
+## How recommendations work
 
-Run `sync` again whenever you want to refresh the local starred repository cache. Sync also removes externally starred repositories from the local Saved list.
+Repo Radar builds targeted searches from the strongest profile languages and topics. It deduplicates the results, applies ownership and feedback exclusions, then ranks eligible repositories using:
 
-Run `web`, then open `http://127.0.0.1:8000`. The web UI supports discovery, saved interests, GitHub starring, a cached starred library, profile review, feedback undo, preferences, GitProfileLens import, and starred repository sync. The CLI remains fully supported.
+- Preference relevance
+- Repository activity
+- Modest quality signals
+- Result novelty
 
-## Local interface
+The ranking system uses weighted counts and readable heuristics rather than embeddings, language models, or opaque machine-learning models.
 
-![Repo Radar local interface](docs/screenshot.png)
+## Local data and privacy
 
-The Saved section shows each repository's `0.70` preference weight and signal count. Saved repositories with more language, topic, and description signals appear first. Feedback history groups blocked, dismissed, interested, and starred records. Clearing a blocked or dismissed record makes that repository eligible for future discovery again. Clearing an interested record also removes it from Saved. Clearing a starred feedback record does not unstar it on GitHub or remove it from the synchronized starred cache.
+Private application state is stored as JSON under `data/`:
 
-Example recommendation:
+- Starred repository cache
+- Saved repositories
+- GitProfileLens import data
+- Manual seed preferences
+- Derived profile scores
+- Feedback history
+- Sync status
 
-```text
-1. owner/repository
-   Score: 82%
-   Python | 842 stars
-   developer tool for analyzing API performance
+The `data/` directory and `.env` are ignored by Git. The web server binds only to `127.0.0.1`. Data is sent only to GitHub and, when requested, GitProfileLens. Repo Radar has no telemetry, analytics, cloud database, background worker, or third-party recommendation service.
 
-   Why: strong match for Python, developer-tools, API
+## Development
 
-   https://github.com/owner/repository
+Run the complete validation suite:
+
+```bash
+python -m pytest
+python -m ruff check .
+python -m ruff format --check .
+node --check repo_radar/static/app.js
 ```
 
-## Privacy
+Tests mock GitHub and GitProfileLens requests. They do not call either live service.
 
-Starred repositories, imported public profile data, seed preferences, derived preferences, and feedback are JSON files under `data/`. That directory, `.env`, and common local environment files are ignored by Git. The web server binds only to `127.0.0.1` and never returns the GitHub token. Data is sent only to GitHub and the optional GitProfileLens import URL for requested operations. There is no telemetry, cloud storage, or third-party recommendation service.
+## Current boundaries
 
-## Current limitations
+- Search coverage depends on the strongest profile signals and GitHub search limits
+- Recommendations are generated on demand rather than cached
+- GitProfileLens remains optional and the last valid import survives refresh failures
+- GitHub starring depends on token capabilities and GitHub API availability
+- Repo Radar does not automatically unstar repositories
 
-The MVP uses weighted counts and heuristics, not machine learning. Search coverage depends on the strongest profile signals and GitHub search limits. Interested feedback contributes a transparent `0.70` preference weight, and recommendations are generated fresh rather than cached. GitProfileLens import remains optional and preserves the last valid import when its JSON report is unavailable or malformed.
+## Roadmap
+
+- Add sorting and filtering to the starred library
+- Add pagination for large saved and starred collections
+- Add profile-source controls without creating a second profile format
+- Improve recommendation explanations with per-signal score details
+- Package the application for simpler installation
