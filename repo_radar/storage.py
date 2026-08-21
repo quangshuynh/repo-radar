@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .models import PreferenceProfile, Repository
+from .models import PreferenceProfile, Repository, SeedPreferences
 
 
 class Storage:
@@ -80,6 +80,22 @@ class Storage:
         :returns: nothing
         """
         self._write_json("profile.json", profile.to_dict())
+
+    def load_seed_preferences(self) -> SeedPreferences:
+        """
+        load manually entered seed preferences
+        :returns: stored seed preferences
+        """
+        value = self._read_json("seed_preferences.json", {})
+        return SeedPreferences.from_dict(value)
+
+    def save_seed_preferences(self, preferences: SeedPreferences) -> None:
+        """
+        save manually entered seed preferences
+        :param preferences: seed preferences to persist
+        :returns: nothing
+        """
+        self._write_json("seed_preferences.json", preferences.to_dict())
 
     def load_feedback(self) -> dict[str, str]:
         """

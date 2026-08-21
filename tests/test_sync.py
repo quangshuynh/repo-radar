@@ -1,7 +1,4 @@
-import pytest
-
 from repo_radar.cli import run_sync
-from repo_radar.github_client import GitHubError
 from repo_radar.models import Repository
 from repo_radar.storage import Storage
 
@@ -42,21 +39,21 @@ class SuccessfulStarredClient:
         return [Repository("owner/new", owner="owner")]
 
 
-def test_sync_does_not_overwrite_cache_after_empty_response(tmp_path, monkeypatch) -> None:
+def test_sync_persists_valid_empty_starred_response(tmp_path, monkeypatch, capsys) -> None:
     """
-    an unexpected empty response fails without replacing cached repositories
+    an account with no stars produces a valid empty cache
     :param tmp_path: pytest temporary directory
     :param monkeypatch: pytest monkeypatch fixture
+    :param capsys: pytest output capture fixture
     :returns: nothing
     """
     storage = Storage(tmp_path)
     storage.save_repositories([Repository("owner/existing", owner="owner")])
     monkeypatch.setattr("repo_radar.cli.GitHubClient", EmptyStarredClient)
 
-    with pytest.raises(GitHubError, match="expected-user"):
-        run_sync(storage)
-
-    assert [repository.full_name for repository in storage.load_repositories()] == ["owner/existing"]
+    assert run_sync(storage) == 0
+    assert storage.load_repositories() == []
+    assert "Cached 0 starred repositories for expected-user" in capsys.readouterr().out
 
 
 def test_sync_persists_successful_starred_response(tmp_path, monkeypatch, capsys) -> None:

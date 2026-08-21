@@ -92,6 +92,38 @@ class PreferenceProfile:
 
 
 @dataclass(slots=True)
+class SeedPreferences:
+    """manual interests used when building a preference profile"""
+
+    languages: list[str] = field(default_factory=list)
+    topics: list[str] = field(default_factory=list)
+    keywords: list[str] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, value: dict[str, Any]) -> SeedPreferences:
+        """
+        create seed preferences from persisted data
+        :param value: persisted seed preference dictionary
+        :returns: seed preferences
+        """
+        return cls(**value)
+
+    def to_dict(self) -> dict[str, Any]:
+        """
+        convert seed preferences to JSON compatible data
+        :returns: seed preference dictionary
+        """
+        return asdict(self)
+
+    def has_signals(self) -> bool:
+        """
+        determine whether any manual preferences are present
+        :returns: whether at least one signal is present
+        """
+        return bool(self.languages or self.topics or self.keywords)
+
+
+@dataclass(slots=True)
 class Recommendation:
     """ranked repository with a transparent explanation"""
 

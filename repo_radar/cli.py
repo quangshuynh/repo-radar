@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Callable
 
 from .discovery import discover_candidates, filter_candidates
 from .feedback import record_feedback
 from .github_client import GitHubClient, GitHubError
-from .models import PreferenceProfile, Recommendation
+from .models import PreferenceProfile, Recommendation, SeedPreferences
 from .profile import build_profile
 from .ranking import rank_candidates
 from .storage import Storage
@@ -22,6 +23,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="repo-radar", description="Personalized GitHub repository discovery")
     parser.add_argument("--data-dir", default="data", help="local private data directory")
     subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers.add_parser("init", help="set manual seed preferences")
     subparsers.add_parser("sync", help="refresh starred repository metadata")
     subparsers.add_parser("profile", help="build and display your preference profile")
     recommend = subparsers.add_parser("recommend", help="discover and rank repositories")
@@ -30,6 +32,46 @@ def build_parser() -> argparse.ArgumentParser:
     feedback.add_argument("repository", help="repository in owner/name form")
     feedback.add_argument("classification", help="interested, not-interested, starred, or blocked")
     return parser
+
+
+def _parse_seed_values(value: str, lowercase: bool = False) -> list[str]:
+    """
+    parse and deduplicate comma separated preference values
+    :param value: comma separated user input
+    :param lowercase: whether to normalize values to lowercase
+    :returns: cleaned preference values
+    """
+    values = [item.strip() for item in value.split(",") if item.strip()]
+    if lowercase:
+        values = [item.lower() for item in values]
+    unique: dict[str, str] = {}
+    for item in values:
+        unique.setdefault(item.lower(), item)
+    return list(unique.values())
+
+
+def run_init(storage: Storage, input_function: Callable[[str], str] = input) -> int:
+    """
+    interactively replace manual seed preferences
+    :param storage: local storage manager
+    :param input_function: function used to collect user input
+    :returns: process exit code
+    """
+    print("Repo Radar setup\n")
+    print("Preferred languages")
+    languages = input_function("Enter comma-separated values:\n> ")
+    print("\nPreferred topics")
+    topics = input_function("Enter comma-separated values:\n> ")
+    print("\nOptional keywords")
+    keywords = input_function("Enter comma-separated values:\n> ")
+    preferences = SeedPreferences(
+        languages=_parse_seed_values(languages),
+        topics=_parse_seed_values(topics, lowercase=True),
+        keywords=_parse_seed_values(keywords, lowercase=True),
+    )
+    storage.save_seed_preferences(preferences)
+    print("\nSaved seed preferences")
+    return 0
 
 
 def _print_signals(title: str, values: dict[str, float], limit: int = 10) -> None:
@@ -68,7 +110,7 @@ def print_recommendations(recommendations: list[Recommendation]) -> None:
     :returns: nothing
     """
     if not recommendations:
-        print("No eligible recommendations found. Try syncing more starred repositories.")
+        print("No eligible recommendations found.")
         return
     for rank, recommendation in enumerate(recommendations, start=1):
         repository = recommendation.repository
@@ -89,12 +131,6 @@ def run_sync(storage: Storage) -> int:
     client = GitHubClient()
     owner = client.get_authenticated_user()
     repositories = client.get_starred_repositories()
-    if not repositories:
-        raise GitHubError(
-            f"GitHub returned no starred repositories for authenticated user {owner}. "
-            "The existing cache was not changed. Verify that the token belongs to the expected user "
-            "and has Starring read permission."
-        )
     storage.save_repositories(repositories)
     print(f"Cached {len(repositories)} starred repositories for {owner}")
     return 0
@@ -107,10 +143,7 @@ def run_profile(storage: Storage) -> int:
     :returns: process exit code
     """
     repositories = storage.load_repositories()
-    if not repositories:
-        print("No starred repositories are cached. Run `python -m repo_radar sync` first.", file=sys.stderr)
-        return 1
-    profile = build_profile(repositories)
+    profile = build_profile(repositories, storage.load_seed_preferences())
     storage.save_profile(profile)
     print_profile(profile)
     return 0
@@ -124,11 +157,12 @@ def run_recommend(storage: Storage, limit: int) -> int:
     :returns: process exit code
     """
     starred = storage.load_repositories()
-    if not starred:
-        print("No starred repositories are cached. Run `python -m repo_radar sync` first.", file=sys.stderr)
-        return 1
-    profile = storage.load_profile() or build_profile(starred)
+    profile = build_profile(starred, storage.load_seed_preferences())
     storage.save_profile(profile)
+    if not profile.languages and not profile.topics and not profile.keywords:
+        print("No preference signals are available yet.")
+        print("Run `python -m repo_radar init` to add interests or star some repositories and run sync.")
+        return 0
     client = GitHubClient()
     owner = client.get_authenticated_user()
     discovered = discover_candidates(client, profile)
@@ -146,6 +180,8 @@ def main(arguments: list[str] | None = None) -> int:
     parsed = build_parser().parse_args(arguments)
     storage = Storage(parsed.data_dir)
     try:
+        if parsed.command == "init":
+            return run_init(storage)
         if parsed.command == "sync":
             return run_sync(storage)
         if parsed.command == "profile":
