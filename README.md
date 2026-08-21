@@ -11,7 +11,7 @@ Repo Radar is a private Python CLI that learns from repositories you have starre
 - Ranks by relevance, activity, modest quality signals, and result novelty
 - Stores interested, not interested, starred, and blocked feedback locally
 - Supports manual seed interests when no starred repositories are available
-- Imports public portfolio signals from an optional GitProfileLens Markdown report
+- Imports public portfolio signals from the optional GitProfileLens JSON report API
 - Provides a local FastAPI web interface while preserving every CLI command
 
 Repo Radar does not automatically star repositories.
@@ -42,7 +42,7 @@ $env:GITHUB_TOKEN = "your_token_here"
 
 ```bash
 python -m repo_radar init
-python -m repo_radar import-profile quangshuynh
+python -m repo_radar import-profile your_username
 python -m repo_radar sync
 python -m repo_radar profile
 python -m repo_radar recommend
@@ -53,7 +53,7 @@ python -m repo_radar web
 
 Run `init` to enter comma-separated languages, topics, and optional keywords. Running it again replaces the previous seed preferences.
 
-Run `import-profile` with a username, or omit it to be prompted, to import a structured GitProfileLens Markdown report. A starred repository contributes `1.00`, a pinned imported repository contributes `0.80`, another active imported repository contributes `0.35`, and each manual seed contributes `0.60`. Archived and forked imported repositories contribute nothing.
+Run `import-profile` with a username, or omit it to be prompted, to import a structured GitProfileLens JSON report. A starred repository contributes `1.00`, a pinned imported repository contributes `0.80`, another active imported repository contributes `0.35`, and each manual seed contributes `0.60`. Archived and forked imported repositories contribute nothing.
 
 Run `sync` again whenever you want to refresh the local starred repository cache.
 
@@ -78,4 +78,4 @@ Starred repositories, imported public profile data, seed preferences, derived pr
 
 ## Current limitations
 
-The MVP uses weighted counts and heuristics, not machine learning. Search coverage depends on the strongest profile signals and GitHub search limits. Feedback is entered manually, positive feedback does not yet change profile weights, and recommendations are generated fresh rather than cached. GitProfileLens import remains optional and preserves the last valid import when its Markdown report is unavailable or malformed.
+The MVP uses weighted counts and heuristics, not machine learning. Search coverage depends on the strongest profile signals and GitHub search limits. Feedback is entered manually, positive feedback does not yet change profile weights, and recommendations are generated fresh rather than cached. GitProfileLens import remains optional and preserves the last valid import when its JSON report is unavailable or malformed.

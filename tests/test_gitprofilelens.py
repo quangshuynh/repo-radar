@@ -1,4 +1,5 @@
 import io
+import json
 import socket
 import urllib.error
 
@@ -6,60 +7,57 @@ import pytest
 
 from repo_radar.gitprofilelens import (
     GitProfileLensError,
-    fetch_markdown_report,
+    fetch_json_report,
     import_profile,
-    parse_markdown_report,
+    parse_json_report,
 )
 from repo_radar.models import ImportedProfile, ImportedRepository
 from repo_radar.storage import Storage
 
-REPORT = """username: example
-public repositories in report: 2
-
-# pinned repositories:
-
-- pinned-tool
-
-# repositories:
-
-### repo 2:
-
-- topics: automation, cli
-- name: pinned-tool
-- unknown future field: ignored
-- primary language: Python
-- desc: A useful automation CLI
-- url: https://github.com/example/pinned-tool
-- pinned on profile: Yes
-- archived: No
-- forked repository: No
-- stars: 12
-- forks: 2
-- last pushed: Jan 2, 2026
-
-### repo 1:
-
-- name: old-fork
-- desc: No description
-- primary language: Not specified
-- topics: None
-- pinned on profile: No
-- archived: Yes
-- forked repository: Yes
-"""
+REPORT = {
+    "username": "example",
+    "public_repositories": 2,
+    "pinned_repositories": ["pinned-tool"],
+    "unknown_future_field": "ignored",
+    "repositories": [
+        {
+            "topics": ["automation", "cli"],
+            "name": "pinned-tool",
+            "unknown_future_field": "ignored",
+            "primary_language": "Python",
+            "description": "A useful automation CLI",
+            "url": "https://github.com/example/pinned-tool",
+            "pinned": True,
+            "archived": False,
+            "forked": False,
+            "stars": 12,
+            "forks": 2,
+            "pushed_at": "2026-01-02T00:00:00Z",
+        },
+        {
+            "name": "old-fork",
+            "description": None,
+            "primary_language": None,
+            "topics": [],
+            "pinned": False,
+            "archived": True,
+            "forked": True,
+        },
+    ],
+}
 
 
 class FakeResponse:
-    """context managed text response"""
+    """context managed JSON response"""
 
-    def __init__(self, body: str, content_type: str = "text/markdown") -> None:
+    def __init__(self, body, content_type: str = "application/json") -> None:
         """
         initialize a mocked HTTP response
-        :param body: response body
+        :param body: JSON serializable response body
         :param content_type: response content type
         :returns: nothing
         """
-        self.body = io.BytesIO(body.encode())
+        self.body = io.BytesIO(json.dumps(body).encode())
         self.headers = {"Content-Type": content_type}
 
     def __enter__(self):
@@ -79,20 +77,21 @@ class FakeResponse:
         """
         return None
 
-    def read(self) -> bytes:
+    def read(self, size: int = -1) -> bytes:
         """
         return the response body
+        :param size: maximum bytes to read
         :returns: response bytes
         """
-        return self.body.read()
+        return self.body.read(size)
 
 
-def test_parse_valid_report_with_flexible_fields() -> None:
+def test_parse_valid_json_report_with_flexible_fields() -> None:
     """
-    labeled fields parse regardless of order and unknown fields
+    JSON fields parse with missing optional and unknown fields
     :returns: nothing
     """
-    profile = parse_markdown_report(REPORT)
+    profile = parse_json_report(REPORT)
     pinned, inactive = profile.repositories
     assert profile.username == "example"
     assert profile.public_repository_count == 2
@@ -108,20 +107,47 @@ def test_parse_valid_report_with_flexible_fields() -> None:
     assert inactive.is_fork is True
 
 
-@pytest.mark.parametrize("report", ["", "# repositories:\n", "<html>not markdown</html>"])
-def test_parse_rejects_empty_malformed_and_html_reports(report: str) -> None:
+@pytest.mark.parametrize(
+    "report",
+    [None, [], {}, {"username": "example"}, {"username": "example", "repositories": [None]}],
+)
+def test_parse_rejects_malformed_json_reports(report) -> None:
     """
-    unusable reports fail explicitly
-    :param report: invalid report content
+    malformed JSON report structures fail explicitly
+    :param report: invalid decoded report
     :returns: nothing
     """
     with pytest.raises(GitProfileLensError):
-        parse_markdown_report(report)
+        parse_json_report(report)
 
 
-def test_fetch_handles_html_network_http_and_timeout(monkeypatch) -> None:
+def test_fetch_uses_json_endpoint_and_headers(monkeypatch) -> None:
     """
-    fetch failures and unexpected HTML remain explicit
+    fetching uses the deployed report endpoint and JSON accept header
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    requests = []
+
+    def fake_urlopen(request, timeout):
+        """
+        capture the outgoing request and return a JSON report
+        :param request: outgoing request
+        :param timeout: request timeout
+        :returns: mocked JSON response
+        """
+        requests.append(request)
+        return FakeResponse(REPORT)
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    assert fetch_json_report("example") == REPORT
+    assert requests[0].full_url == "https://gitprofilelens.vercel.app/api/report?user=example"
+    assert requests[0].get_header("Accept") == "application/json"
+
+
+def test_fetch_handles_non_json_network_http_and_timeout(monkeypatch) -> None:
+    """
+    fetch failures and unexpected content remain explicit
     :param monkeypatch: pytest monkeypatch fixture
     :returns: nothing
     """
@@ -133,7 +159,7 @@ def test_fetch_handles_html_network_http_and_timeout(monkeypatch) -> None:
         :param timeout: request timeout
         :returns: HTML response
         """
-        return FakeResponse("<html></html>", "text/html")
+        return FakeResponse({}, "text/html")
 
     def raise_network_error(request, timeout):
         """
@@ -166,7 +192,7 @@ def test_fetch_handles_html_network_http_and_timeout(monkeypatch) -> None:
     for failure in failures:
         monkeypatch.setattr("urllib.request.urlopen", failure)
         with pytest.raises(GitProfileLensError):
-            fetch_markdown_report("example")
+            fetch_json_report("example")
 
 
 def test_failed_import_preserves_previous_profile(tmp_path, monkeypatch) -> None:
@@ -180,7 +206,7 @@ def test_failed_import_preserves_previous_profile(tmp_path, monkeypatch) -> None
     previous = ImportedProfile("example", 1, repositories=[ImportedRepository("existing")])
     storage.save_imported_profile(previous)
 
-    def fail_fetch(username: str, timeout: int = 30) -> str:
+    def fail_fetch(username: str, timeout: int = 30):
         """
         raise a mocked network failure
         :param username: requested username
@@ -189,7 +215,7 @@ def test_failed_import_preserves_previous_profile(tmp_path, monkeypatch) -> None
         """
         raise GitProfileLensError("offline")
 
-    monkeypatch.setattr("repo_radar.gitprofilelens.fetch_markdown_report", fail_fetch)
+    monkeypatch.setattr("repo_radar.gitprofilelens.fetch_json_report", fail_fetch)
     with pytest.raises(GitProfileLensError):
         import_profile("example", storage)
     assert storage.load_imported_profile() == previous
