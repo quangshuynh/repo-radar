@@ -9,6 +9,8 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
+from dotenv import load_dotenv
+
 from .models import Repository
 
 
@@ -26,6 +28,7 @@ class GitHubClient:
         :param base_url: GitHub API base URL
         :returns: nothing
         """
+        load_dotenv(override=False)
         self.token = token or os.environ.get("GITHUB_TOKEN")
         self.base_url = base_url.rstrip("/")
         if not self.token:

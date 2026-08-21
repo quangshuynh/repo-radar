@@ -1,3 +1,4 @@
 -e .
+python-dotenv>=1.0
 pytest>=8
 ruff>=0.6

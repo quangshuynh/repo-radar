@@ -23,7 +23,7 @@ python -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
-Set the token in your environment. The included `.env.example` is a template only; Repo Radar does not automatically load `.env` files.
+Set the token in your environment or in a `.env` file at the project root. Repo Radar loads `.env` automatically without replacing an already exported environment value.
 
 ```text
 GITHUB_TOKEN=your_token_here
