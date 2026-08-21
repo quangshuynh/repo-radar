@@ -115,6 +115,13 @@ input:focus { border-color: var(--terracotta); box-shadow: 0 0 0 3px rgb(189 91 
 .checkbox { display: flex; align-items: center; min-height: 42px; }
 .checkbox input { width: 1rem; min-width: 0; accent-color: var(--terracotta); }
 .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+.recommendation-empty, .recommendation-loading { grid-column: 1 / -1; padding: 1.3rem; border: 1px dashed #66483a; border-radius: 12px; background: #1c1311; }
+.empty-title, .loading-title { margin-bottom: .35rem; color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: 1.05rem; font-weight: 700; }
+.recommendation-empty .empty, .recommendation-loading .empty { margin-bottom: 0; line-height: 1.5; }
+.loading-track { position: relative; height: 6px; margin-top: 1rem; overflow: hidden; border-radius: 999px; background: #493127; }
+.loading-bar { position: absolute; inset-block: 0; width: 38%; border-radius: inherit; background: linear-gradient(90deg, var(--terracotta), var(--honey)); animation: recommendation-scan 1.15s ease-in-out infinite; }
+@keyframes recommendation-scan { from { transform: translateX(-110%); } to { transform: translateX(300%); } }
+@media (prefers-reduced-motion: reduce) { .loading-bar { width: 100%; animation: none; } }
 .card { padding: 1.1rem; border: 1px solid #4e362d; border-radius: 13px; background: #1c1311; box-shadow: 0 6px 18px rgb(0 0 0 / 20%); transition: border-color 140ms ease, transform 140ms ease; }
 .card:hover { border-color: #c99372; transform: translateY(-2px); }
 .card-head { display: flex; justify-content: space-between; gap: 1rem; }

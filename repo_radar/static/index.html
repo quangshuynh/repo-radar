@@ -21,7 +21,7 @@
     <section id="discover" class="panel">
       <div class="section-heading"><div><p class="eyebrow">Picked for you</p><h2>Discover repositories</h2><p class="section-intro">A fresh batch of projects, balanced for relevance and a little serendipity.</p></div><button id="refresh">Find something good</button></div>
       <div class="filters"><label>Language<input id="filter-language" placeholder="Python"></label><label>Minimum stars<input id="filter-min" type="number" min="0" value="0"></label><label>Maximum stars<input id="filter-max" type="number" min="0"></label><label>Results<input id="filter-limit" type="number" min="1" max="50" value="10"></label><label class="checkbox"><input id="filter-gems" type="checkbox"> Hidden gems</label></div>
-      <div id="recommendations" class="cards"><p class="empty">Choose refresh to generate recommendations</p></div>
+      <div id="recommendations" class="cards"><div class="recommendation-empty"><p class="empty-title">Your next favorite project might be nearby.</p><p class="empty">Select “Find something good” and Repo Radar will search for repositories shaped by your profile.</p></div></div>
     </section>
     <section id="profile" class="panel"><div class="section-heading"><div><p class="eyebrow">What catches your eye</p><h2>Your taste profile</h2><p class="section-intro">The languages, topics, and ideas currently guiding your recommendations.</p></div><button id="reload-profile" class="secondary">Refresh profile</button></div><div id="profile-summary"></div></section>
     <section id="preferences" class="panel">
