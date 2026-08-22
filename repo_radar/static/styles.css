@@ -166,6 +166,8 @@ button.danger { border-color: #7e4c42; background: #3a211d; color: #e1a195; box-
 .feedback-record { display: flex; align-items: center; justify-content: space-between; gap: .65rem; padding: .55rem 0; border-top: 1px solid #38261f; }
 .feedback-record span { min-width: 0; overflow-wrap: anywhere; }
 .feedback-record button { padding: .35rem .6rem; box-shadow: none; font-size: .74rem; }
+.collection-toggle { grid-column: 1 / -1; justify-self: center; margin-top: .35rem; }
+.feedback-groups section .collection-toggle { display: block; margin: .65rem auto 0; }
 
 #profile-summary > .meta { margin: 1rem 0 1.25rem; padding: .7rem .8rem; border-radius: 9px; background: #30211c; }
 .signal-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
