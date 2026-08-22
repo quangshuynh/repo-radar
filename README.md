@@ -2,6 +2,10 @@
 
 Repo Radar is a private, local-first GitHub discovery tool. It learns from repositories you star, projects you save, your public GitHub portfolio, manual interests, and ongoing feedback. It then searches GitHub and ranks repositories with transparent relevance, activity, quality, and novelty signals.
 
+[![CI](https://github.com/quangshuynh/repo-radar/actions/workflows/ci.yml/badge.svg)](https://github.com/quangshuynh/repo-radar/actions/workflows/ci.yml)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)
+[![License: MIT](https://img.shields.io/badge/license-MIT-c56a3d.svg)](LICENSE)
+
 ![Repo Radar local interface](docs/screenshot.png)
 
 ## Features
@@ -163,6 +167,14 @@ node --check repo_radar/static/app.js
 
 Tests mock GitHub and GitProfileLens requests. They do not call either live service.
 
+To inspect local coverage without enforcing an arbitrary threshold:
+
+```bash
+python -m pytest --cov=repo_radar --cov-report=term-missing
+```
+
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup and pull request guidance. Report security concerns according to [SECURITY.md](SECURITY.md), and never include a GitHub token in an issue or screenshot.
+
 ## Current boundaries
 
 - Search coverage depends on the strongest profile signals and GitHub search limits
@@ -173,8 +185,12 @@ Tests mock GitHub and GitProfileLens requests. They do not call either live serv
 
 ## Roadmap
 
+- Improve recommendation explanations with per-signal score details
 - Add sorting and filtering to the starred library
 - Add pagination for large saved and starred collections
 - Add profile-source controls without creating a second profile format
-- Improve recommendation explanations with per-signal score details
 - Package the application for simpler installation
+
+## License
+
+Repo Radar is available under the [MIT License](LICENSE).

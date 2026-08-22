@@ -4,7 +4,7 @@ import urllib.error
 from email.message import Message
 from urllib.parse import parse_qs, urlparse
 
-from repo_radar.github_client import GitHubClient
+from repo_radar.github_client import GitHubClient, GitHubError
 
 
 class FakeResponse:
@@ -168,3 +168,31 @@ def test_star_repository_uses_authenticated_put_request(monkeypatch) -> None:
     assert requests[0].get_header("Authorization") == "Bearer test-token"
     assert requests[0].get_header("Content-length") == "0"
     assert requests[0].get_header("X-github-api-version") == "2026-03-10"
+
+
+def test_malformed_starred_response_fails_safely(monkeypatch) -> None:
+    """
+    malformed starred items raise an explicit error without any mutation request
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    requests = []
+
+    def fake_urlopen(request, timeout):
+        """
+        return malformed starred repository data
+        :param request: outgoing URL request
+        :param timeout: outgoing request timeout
+        :returns: fake malformed API response
+        """
+        requests.append(request)
+        return FakeResponse(["not-a-repository"])
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    try:
+        GitHubClient("test-token").get_starred_repositories()
+    except GitHubError as error:
+        assert "invalid starred repository data" in str(error)
+    else:
+        raise AssertionError("Expected malformed GitHub data to fail")
+    assert [request.method for request in requests] == ["GET"]

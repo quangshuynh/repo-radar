@@ -212,6 +212,58 @@ def test_star_all_saved_repositories_updates_each_confirmed_star(tmp_path, monke
     assert {repository.full_name for repository in storage.load_repositories()} == {"one/tool", "two/tool"}
 
 
+def test_local_feedback_never_stars_without_star_action(tmp_path, monkeypatch) -> None:
+    """
+    ordinary feedback actions never invoke the GitHub star mutation
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+
+    class ForbiddenGitHubClient:
+        """GitHub client that fails if constructed by a local feedback action"""
+
+        def __init__(self) -> None:
+            """
+            reject unexpected GitHub client construction
+            :returns: nothing
+            """
+            raise AssertionError("Local feedback must not construct a GitHub client")
+
+    monkeypatch.setattr("repo_radar.web.GitHubClient", ForbiddenGitHubClient)
+    response = TestClient(app).post(
+        "/api/feedback",
+        json={"repository": "owner/tool", "classification": "interested"},
+    )
+    assert response.status_code == 200
+    assert Storage(tmp_path).load_interested_repositories() == [Repository("owner/tool", owner="owner")]
+
+
+def test_empty_bulk_star_action_does_not_contact_github(tmp_path, monkeypatch) -> None:
+    """
+    an empty confirmed batch performs no GitHub mutation
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+
+    class ForbiddenGitHubClient:
+        """GitHub client that fails if constructed for an empty batch"""
+
+        def __init__(self) -> None:
+            """
+            reject unexpected GitHub client construction
+            :returns: nothing
+            """
+            raise AssertionError("An empty batch must not construct a GitHub client")
+
+    monkeypatch.setattr("repo_radar.web.GitHubClient", ForbiddenGitHubClient)
+    response = TestClient(app).post("/api/interested/star-all")
+    assert response.json() == {"starred_count": 0}
+
+
 def test_web_sync_removes_externally_starred_saved_repository(tmp_path, monkeypatch) -> None:
     """
     web synchronization reconciles saved repositories starred outside the app
