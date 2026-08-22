@@ -1,5 +1,47 @@
 const message = document.querySelector("#message");
 const refreshButton = document.querySelector("#refresh");
+const COLLAPSED_RESULT_LIMIT = 6;
+const expandedLibraries = {
+  interested: false,
+  starred: false,
+  feedbackInterested: false,
+  feedbackStarred: false,
+};
+
+/**
+ * creates a control for expanding or collapsing a result collection
+ * @param {number} total total number of available results
+ * @param {boolean} expanded whether every result is visible
+ * @param {Function} toggle callback that changes the expanded state
+ * @returns {HTMLButtonElement} expand or collapse control
+ */
+function collectionToggle(total, expanded, toggle) {
+  const button = document.createElement("button");
+  button.className = "secondary collection-toggle";
+  button.type = "button";
+  button.setAttribute("aria-expanded", String(expanded));
+  button.textContent = expanded ? "See less" : `See more (${total - COLLAPSED_RESULT_LIMIT})`;
+  button.addEventListener("click", toggle);
+  return button;
+}
+
+/**
+ * renders a collection with an optional expand or collapse control
+ * @param {HTMLElement} container collection container
+ * @param {Array<object>} items available collection items
+ * @param {Function} renderItem function that creates one item element
+ * @param {boolean} expanded whether every item is visible
+ * @param {Function} toggle callback that changes the expanded state
+ * @returns {void} no return value
+ */
+function renderCollection(container, items, renderItem, expanded, toggle) {
+  const visible = expanded ? items : items.slice(0, COLLAPSED_RESULT_LIMIT);
+  const elements = visible.map(renderItem);
+  if (items.length > COLLAPSED_RESULT_LIMIT) {
+    elements.push(collectionToggle(items.length, expanded, toggle));
+  }
+  container.replaceChildren(...elements);
+}
 
 /**
  * requests json from the local api
@@ -268,7 +310,10 @@ async function loadStarred() {
     container.replaceChildren(empty);
     return;
   }
-  container.replaceChildren(...data.repositories.map(starredRepository));
+  renderCollection(container, data.repositories, starredRepository, expandedLibraries.starred, () => {
+    expandedLibraries.starred = !expandedLibraries.starred;
+    loadStarred();
+  });
 }
 
 /**
@@ -303,14 +348,24 @@ async function loadFeedback() {
     container.replaceChildren(empty);
     return;
   }
-  const classifications = ["blocked", "not interested", "interested", "starred"];
+  const classifications = ["interested", "starred", "blocked", "not interested"];
   const groups = classifications.flatMap((classification) => {
     const records = data.records.filter((record) => record.classification === classification);
     if (!records.length) return [];
     const section = document.createElement("section");
     const heading = document.createElement("h3");
+    const stateKey = classification === "interested" ? "feedbackInterested" : "feedbackStarred";
+    const isExpandable = classification === "interested" || classification === "starred";
+    const expanded = isExpandable && expandedLibraries[stateKey];
+    const visibleRecords = isExpandable && !expanded ? records.slice(0, COLLAPSED_RESULT_LIMIT) : records;
     heading.textContent = `${classification} (${records.length})`;
-    section.append(heading, ...records.map(feedbackRecord));
+    section.append(heading, ...visibleRecords.map(feedbackRecord));
+    if (isExpandable && records.length > COLLAPSED_RESULT_LIMIT) {
+      section.append(collectionToggle(records.length, expanded, () => {
+        expandedLibraries[stateKey] = !expandedLibraries[stateKey];
+        loadFeedback();
+      }));
+    }
     return [section];
   });
   container.replaceChildren(...groups);
@@ -342,9 +397,8 @@ async function removeInterested(repository, row) {
   const [owner, name] = repository.full_name.split("/", 2).map(encodeURIComponent);
   await api(`/api/interested/${owner}/${name}`, { method: "DELETE" });
   row.remove();
-  await Promise.all([loadProfile(), loadFeedback()]);
+  await Promise.all([loadInterested(), loadProfile(), loadFeedback()]);
   showMessage(`Removed ${repository.full_name} from saved`);
-  if (!document.querySelector("#interested-repositories").children.length) await loadInterested();
 }
 
 /**
@@ -393,7 +447,10 @@ async function loadInterested() {
     container.replaceChildren(empty);
     return;
   }
-  container.replaceChildren(...data.repositories.map(savedRepository));
+  renderCollection(container, data.repositories, savedRepository, expandedLibraries.interested, () => {
+    expandedLibraries.interested = !expandedLibraries.interested;
+    loadInterested();
+  });
 }
 
 /**
