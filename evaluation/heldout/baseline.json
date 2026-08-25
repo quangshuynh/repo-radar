@@ -1,0 +1,4084 @@
+{
+  "snapshot_date": "2026-08-25",
+  "snapshot_owner": "quangshuynh",
+  "coverage": {
+    "total_stored_stars": 10,
+    "eligible_stars": 10,
+    "excluded_stars": 0,
+    "exclusions": [],
+    "eligible_star_names": [
+      "1kbgz/spaday",
+      "apache/airflow",
+      "axide-dev/axidev-osk",
+      "aza-ali/github-readme-crisp-links",
+      "eriknovak/datachart",
+      "firedvl/systematic-trading-lab",
+      "Kaelvior392751/fieldservice-signed-csv-export",
+      "Kozea/Radicale",
+      "PetervanLunteren/AddaxAI-Connect",
+      "Skyvern-AI/skyvern"
+    ]
+  },
+  "trial_configuration": {
+    "trials": 45,
+    "selection": "exhaustive",
+    "holdout_per_trial": 2,
+    "training_stars_per_trial": 8,
+    "seed": 20260825,
+    "max_trials": 50,
+    "ranking_window": 100,
+    "unranked_treatment": "counted as a miss for hit rate and recall; excluded from rank statistics",
+    "candidate_pool_size": 206,
+    "candidates_per_trial_min": 207,
+    "candidates_per_trial_max": 207,
+    "positive_ratio_per_trial": 0.009662,
+    "profile_sources": [
+      "starred (training only)",
+      "owned public repositories"
+    ],
+    "search_queries": [
+      "language:Python topic:python archived:false",
+      "language:Python stars:10..50000 archived:false",
+      "language:JavaScript stars:10..50000 archived:false",
+      "language:TypeScript stars:10..50000 archived:false",
+      "topic:python stars:5..50000 archived:false",
+      "topic:javascript stars:5..50000 archived:false",
+      "topic:automation stars:5..50000 archived:false",
+      "topic:workflow stars:5..50000 archived:false"
+    ]
+  },
+  "production": {
+    "hit_rate_at_5": 0.1778,
+    "hit_rate_at_10": 0.4222,
+    "hit_rate_at_20": 0.7778,
+    "recall_at_5": 0.0889,
+    "recall_at_10": 0.2222,
+    "recall_at_20": 0.5,
+    "mrr": 0.104,
+    "median_rank": 24.0,
+    "mean_rank": 26.5222,
+    "p25_rank": 11.0,
+    "p75_rank": 47.0,
+    "best_rank": 4,
+    "worst_rank": 56,
+    "ranked_positives": 90,
+    "unranked_positives": 0
+  },
+  "baselines": {
+    "popularity": {
+      "hit_rate_at_5": 0.2,
+      "hit_rate_at_10": 0.3778,
+      "hit_rate_at_20": 0.5333,
+      "recall_at_5": 0.1,
+      "recall_at_10": 0.1889,
+      "recall_at_20": 0.3,
+      "mrr": 0.2291,
+      "median_rank": 13.5,
+      "mean_rank": 28.4167,
+      "p25_rank": 1.0,
+      "p75_rank": 17.0,
+      "best_rank": 1,
+      "worst_rank": 87,
+      "ranked_positives": 36,
+      "unranked_positives": 54
+    },
+    "activity": {
+      "hit_rate_at_5": 0.0,
+      "hit_rate_at_10": 0.0,
+      "hit_rate_at_20": 0.0,
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "recall_at_20": 0.0,
+      "mrr": 0.0,
+      "median_rank": null,
+      "mean_rank": null,
+      "p25_rank": null,
+      "p75_rank": null,
+      "best_rank": null,
+      "worst_rank": null,
+      "ranked_positives": 0,
+      "unranked_positives": 90
+    },
+    "random": {
+      "hit_rate_at_5": 0.0222,
+      "hit_rate_at_10": 0.0444,
+      "hit_rate_at_20": 0.1111,
+      "recall_at_5": 0.0111,
+      "recall_at_10": 0.0222,
+      "recall_at_20": 0.0556,
+      "mrr": 0.0454,
+      "median_rank": 45.0,
+      "mean_rank": 44.8205,
+      "p25_rank": 30.0,
+      "p75_rank": 56.0,
+      "best_rank": 1,
+      "worst_rank": 89,
+      "ranked_positives": 39,
+      "unranked_positives": 51
+    }
+  },
+  "language_ablations": {
+    "current": {
+      "hit_rate_at_5": 0.1778,
+      "hit_rate_at_10": 0.4222,
+      "hit_rate_at_20": 0.7778,
+      "recall_at_5": 0.0889,
+      "recall_at_10": 0.2222,
+      "recall_at_20": 0.5,
+      "mrr": 0.104,
+      "median_rank": 24.0,
+      "mean_rank": 26.5222,
+      "p25_rank": 11.0,
+      "p75_rank": 47.0,
+      "best_rank": 4,
+      "worst_rank": 56,
+      "ranked_positives": 90,
+      "unranked_positives": 0
+    },
+    "uniform": {
+      "hit_rate_at_5": 0.0,
+      "hit_rate_at_10": 0.1778,
+      "hit_rate_at_20": 0.7333,
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0889,
+      "recall_at_20": 0.4444,
+      "mrr": 0.0688,
+      "median_rank": 26.0,
+      "mean_rank": 41.4719,
+      "p25_rank": 15.0,
+      "p75_rank": 74.0,
+      "best_rank": 7,
+      "worst_rank": 93,
+      "ranked_positives": 89,
+      "unranked_positives": 1
+    },
+    "compressed": {
+      "hit_rate_at_5": 0.1778,
+      "hit_rate_at_10": 0.4222,
+      "hit_rate_at_20": 0.7778,
+      "recall_at_5": 0.0889,
+      "recall_at_10": 0.2222,
+      "recall_at_20": 0.5,
+      "mrr": 0.1039,
+      "median_rank": 24.0,
+      "mean_rank": 27.2667,
+      "p25_rank": 11.0,
+      "p75_rank": 49.0,
+      "best_rank": 4,
+      "worst_rank": 57,
+      "ranked_positives": 90,
+      "unranked_positives": 0
+    }
+  },
+  "segments": {
+    "dominant_training_language": {
+      "positives": 90,
+      "recall_at_10": 0.2222,
+      "median_rank": 24.0
+    },
+    "secondary_or_unseen_language": {
+      "positives": 0,
+      "recall_at_10": null,
+      "median_rank": null
+    },
+    "topics_seen_in_training": {
+      "positives": 81,
+      "recall_at_10": 0.2469,
+      "median_rank": 16.0
+    },
+    "no_topic_overlap": {
+      "positives": 9,
+      "recall_at_10": 0.0,
+      "median_rank": 50.0
+    },
+    "above_median_stars": {
+      "positives": 45,
+      "recall_at_10": 0.4444,
+      "median_rank": 11.0
+    },
+    "at_or_below_median_stars": {
+      "positives": 45,
+      "recall_at_10": 0.0,
+      "median_rank": 37.0
+    }
+  },
+  "score_term_spreads": {
+    "topic": {
+      "nominal_weight": 0.38,
+      "observed_min": 0.0,
+      "observed_max": 0.12578,
+      "observed_spread": 0.12578,
+      "observed_p25": 0.095,
+      "observed_p75": 0.12141,
+      "interquartile_spread": 0.02641
+    },
+    "language": {
+      "nominal_weight": 0.25,
+      "observed_min": 0.25,
+      "observed_max": 0.25,
+      "observed_spread": 0.0,
+      "observed_p25": 0.25,
+      "observed_p75": 0.25,
+      "interquartile_spread": 0.0
+    },
+    "keyword": {
+      "nominal_weight": 0.17,
+      "observed_min": 0.0,
+      "observed_max": 0.07616,
+      "observed_spread": 0.07616,
+      "observed_p25": 0.009724,
+      "observed_p75": 0.034,
+      "interquartile_spread": 0.024276
+    },
+    "activity": {
+      "nominal_weight": 0.1,
+      "observed_min": 0.086438,
+      "observed_max": 0.1,
+      "observed_spread": 0.013562,
+      "observed_p25": 0.1,
+      "observed_p75": 0.1,
+      "interquartile_spread": 0.0
+    },
+    "quality": {
+      "nominal_weight": 0.1,
+      "observed_min": 0.007526,
+      "observed_max": 0.1,
+      "observed_spread": 0.092474,
+      "observed_p25": 0.015051,
+      "observed_p75": 0.094399,
+      "interquartile_spread": 0.079348
+    }
+  },
+  "redundancy": {
+    "positives_behind_a_near_duplicate": 0,
+    "examples": []
+  },
+  "trials": [
+    {
+      "trial": 0,
+      "held_out": [
+        "1kbgz/spaday",
+        "apache/airflow"
+      ],
+      "ranks": [
+        17,
+        7
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 160,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 6.9562
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "onyx-dot-app/onyx",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "DataBiosphere/toil",
+        "apache/airflow",
+        "getsentry/sentry",
+        "Simmons-Systems/simsys-metrics",
+        "kornia/kornia"
+      ]
+    },
+    {
+      "trial": 1,
+      "held_out": [
+        "1kbgz/spaday",
+        "axide-dev/axidev-osk"
+      ],
+      "ranks": [
+        15,
+        48
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 172,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0774
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "onyx-dot-app/onyx",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "DataBiosphere/toil",
+        "ObaidQadri/RD-Agent",
+        "getsentry/sentry",
+        "kornia/kornia",
+        "Simmons-Systems/simsys-metrics"
+      ]
+    },
+    {
+      "trial": 2,
+      "held_out": [
+        "1kbgz/spaday",
+        "aza-ali/github-readme-crisp-links"
+      ],
+      "ranks": [
+        15,
+        10
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 171,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0682
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "onyx-dot-app/onyx",
+        "Thesirix/Thesirix",
+        "pCresp0/porra-mundial-nanos-2026",
+        "DataBiosphere/toil",
+        "Simmons-Systems/simsys-metrics",
+        "ObaidQadri/RD-Agent",
+        "getsentry/sentry",
+        "aza-ali/github-readme-crisp-links"
+      ]
+    },
+    {
+      "trial": 3,
+      "held_out": [
+        "1kbgz/spaday",
+        "eriknovak/datachart"
+      ],
+      "ranks": [
+        15,
+        32
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 173,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0911
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "onyx-dot-app/onyx",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "DataBiosphere/toil",
+        "ObaidQadri/RD-Agent",
+        "getsentry/sentry",
+        "kornia/kornia",
+        "Simmons-Systems/simsys-metrics"
+      ]
+    },
+    {
+      "trial": 4,
+      "held_out": [
+        "1kbgz/spaday",
+        "firedvl/systematic-trading-lab"
+      ],
+      "ranks": [
+        16,
+        48
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 167,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0264
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "onyx-dot-app/onyx",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "DataBiosphere/toil",
+        "ObaidQadri/RD-Agent",
+        "getsentry/sentry",
+        "kornia/kornia",
+        "Simmons-Systems/simsys-metrics"
+      ]
+    },
+    {
+      "trial": 5,
+      "held_out": [
+        "1kbgz/spaday",
+        "Kaelvior392751/fieldservice-signed-csv-export"
+      ],
+      "ranks": [
+        19,
+        40
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 170,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0591
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "onyx-dot-app/onyx",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "DataBiosphere/toil",
+        "ObaidQadri/RD-Agent",
+        "getsentry/sentry",
+        "kornia/kornia",
+        "Simmons-Systems/simsys-metrics"
+      ]
+    },
+    {
+      "trial": 6,
+      "held_out": [
+        "1kbgz/spaday",
+        "Kozea/Radicale"
+      ],
+      "ranks": [
+        16,
+        11
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 172,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0805
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "onyx-dot-app/onyx",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "DataBiosphere/toil",
+        "ObaidQadri/RD-Agent",
+        "getsentry/sentry",
+        "kornia/kornia",
+        "Simmons-Systems/simsys-metrics"
+      ]
+    },
+    {
+      "trial": 7,
+      "held_out": [
+        "1kbgz/spaday",
+        "PetervanLunteren/AddaxAI-Connect"
+      ],
+      "ranks": [
+        14,
+        50
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 175,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0953
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "pCresp0/porra-mundial-nanos-2026",
+        "onyx-dot-app/onyx",
+        "Thesirix/Thesirix",
+        "DataBiosphere/toil",
+        "ObaidQadri/RD-Agent",
+        "Simmons-Systems/simsys-metrics",
+        "kornia/kornia",
+        "getsentry/sentry"
+      ]
+    },
+    {
+      "trial": 8,
+      "held_out": [
+        "1kbgz/spaday",
+        "Skyvern-AI/skyvern"
+      ],
+      "ranks": [
+        20,
+        5
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 163,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 6.9937
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "onyx-dot-app/onyx",
+        "Thesirix/Thesirix",
+        "Skyvern-AI/skyvern",
+        "pCresp0/porra-mundial-nanos-2026",
+        "DataBiosphere/toil",
+        "getsentry/sentry",
+        "kornia/kornia",
+        "Simmons-Systems/simsys-metrics"
+      ]
+    },
+    {
+      "trial": 9,
+      "held_out": [
+        "apache/airflow",
+        "axide-dev/axidev-osk"
+      ],
+      "ranks": [
+        7,
+        47
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 162,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 6.9634
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "apache/airflow",
+        "Simmons-Systems/simsys-metrics",
+        "getsentry/sentry",
+        "kornia/kornia"
+      ]
+    },
+    {
+      "trial": 10,
+      "held_out": [
+        "apache/airflow",
+        "aza-ali/github-readme-crisp-links"
+      ],
+      "ranks": [
+        7,
+        11
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 161,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 6.9536
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "Thesirix/Thesirix",
+        "pCresp0/porra-mundial-nanos-2026",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "apache/airflow",
+        "Simmons-Systems/simsys-metrics",
+        "getsentry/sentry",
+        "kornia/kornia"
+      ]
+    },
+    {
+      "trial": 11,
+      "held_out": [
+        "apache/airflow",
+        "eriknovak/datachart"
+      ],
+      "ranks": [
+        7,
+        31
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 163,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 6.9781
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "apache/airflow",
+        "Simmons-Systems/simsys-metrics",
+        "getsentry/sentry",
+        "kornia/kornia"
+      ]
+    },
+    {
+      "trial": 12,
+      "held_out": [
+        "apache/airflow",
+        "firedvl/systematic-trading-lab"
+      ],
+      "ranks": [
+        9,
+        53
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 157,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 6.908
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "Simmons-Systems/simsys-metrics",
+        "getsentry/sentry",
+        "apache/airflow",
+        "kornia/kornia"
+      ]
+    },
+    {
+      "trial": 13,
+      "held_out": [
+        "apache/airflow",
+        "Kaelvior392751/fieldservice-signed-csv-export"
+      ],
+      "ranks": [
+        7,
+        34
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 160,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 6.9435
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "apache/airflow",
+        "getsentry/sentry",
+        "Simmons-Systems/simsys-metrics",
+        "kornia/kornia"
+      ]
+    },
+    {
+      "trial": 14,
+      "held_out": [
+        "apache/airflow",
+        "Kozea/Radicale"
+      ],
+      "ranks": [
+        7,
+        10
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 162,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 6.9667
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "apache/airflow",
+        "Simmons-Systems/simsys-metrics",
+        "getsentry/sentry",
+        "Kozea/Radicale"
+      ]
+    },
+    {
+      "trial": 15,
+      "held_out": [
+        "apache/airflow",
+        "PetervanLunteren/AddaxAI-Connect"
+      ],
+      "ranks": [
+        7,
+        51
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 165,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 6.9823
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "Thesirix/Thesirix",
+        "pCresp0/porra-mundial-nanos-2026",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "apache/airflow",
+        "Simmons-Systems/simsys-metrics",
+        "getsentry/sentry",
+        "kornia/kornia"
+      ]
+    },
+    {
+      "trial": 16,
+      "held_out": [
+        "apache/airflow",
+        "Skyvern-AI/skyvern"
+      ],
+      "ranks": [
+        11,
+        8
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 152,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 6.8496
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "Thesirix/Thesirix",
+        "PrefectHQ/prefect",
+        "pCresp0/porra-mundial-nanos-2026",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "Simmons-Systems/simsys-metrics",
+        "Skyvern-AI/skyvern",
+        "getsentry/sentry",
+        "kornia/kornia"
+      ]
+    },
+    {
+      "trial": 17,
+      "held_out": [
+        "axide-dev/axidev-osk",
+        "aza-ali/github-readme-crisp-links"
+      ],
+      "ranks": [
+        45,
+        12
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 173,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0751
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "Thesirix/Thesirix",
+        "onyx-dot-app/onyx",
+        "pCresp0/porra-mundial-nanos-2026",
+        "DataBiosphere/toil",
+        "Simmons-Systems/simsys-metrics",
+        "kornia/kornia",
+        "getsentry/sentry",
+        "ObaidQadri/RD-Agent"
+      ]
+    },
+    {
+      "trial": 18,
+      "held_out": [
+        "axide-dev/axidev-osk",
+        "eriknovak/datachart"
+      ],
+      "ranks": [
+        49,
+        30
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 175,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.098
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "Simmons-Systems/simsys-metrics",
+        "ObaidQadri/RD-Agent",
+        "getsentry/sentry",
+        "kornia/kornia"
+      ]
+    },
+    {
+      "trial": 19,
+      "held_out": [
+        "axide-dev/axidev-osk",
+        "firedvl/systematic-trading-lab"
+      ],
+      "ranks": [
+        47,
+        48
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 169,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0337
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "Simmons-Systems/simsys-metrics",
+        "ObaidQadri/RD-Agent",
+        "getsentry/sentry",
+        "kornia/kornia"
+      ]
+    },
+    {
+      "trial": 20,
+      "held_out": [
+        "axide-dev/axidev-osk",
+        "Kaelvior392751/fieldservice-signed-csv-export"
+      ],
+      "ranks": [
+        48,
+        37
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 172,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0662
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "onyx-dot-app/onyx",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "DataBiosphere/toil",
+        "ObaidQadri/RD-Agent",
+        "getsentry/sentry",
+        "kornia/kornia",
+        "Simmons-Systems/simsys-metrics"
+      ]
+    },
+    {
+      "trial": 21,
+      "held_out": [
+        "axide-dev/axidev-osk",
+        "Kozea/Radicale"
+      ],
+      "ranks": [
+        49,
+        11
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 174,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0875
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "Simmons-Systems/simsys-metrics",
+        "ObaidQadri/RD-Agent",
+        "getsentry/sentry",
+        "kornia/kornia"
+      ]
+    },
+    {
+      "trial": 22,
+      "held_out": [
+        "axide-dev/axidev-osk",
+        "PetervanLunteren/AddaxAI-Connect"
+      ],
+      "ranks": [
+        46,
+        51
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 177,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.1024
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "Thesirix/Thesirix",
+        "pCresp0/porra-mundial-nanos-2026",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "ObaidQadri/RD-Agent",
+        "Simmons-Systems/simsys-metrics",
+        "kornia/kornia",
+        "getsentry/sentry"
+      ]
+    },
+    {
+      "trial": 23,
+      "held_out": [
+        "axide-dev/axidev-osk",
+        "Skyvern-AI/skyvern"
+      ],
+      "ranks": [
+        47,
+        5
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 165,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0008
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "Thesirix/Thesirix",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Skyvern-AI/skyvern",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "Simmons-Systems/simsys-metrics",
+        "kornia/kornia",
+        "getsentry/sentry"
+      ]
+    },
+    {
+      "trial": 24,
+      "held_out": [
+        "aza-ali/github-readme-crisp-links",
+        "eriknovak/datachart"
+      ],
+      "ranks": [
+        12,
+        28
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 174,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0888
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "Thesirix/Thesirix",
+        "onyx-dot-app/onyx",
+        "pCresp0/porra-mundial-nanos-2026",
+        "DataBiosphere/toil",
+        "Simmons-Systems/simsys-metrics",
+        "kornia/kornia",
+        "getsentry/sentry",
+        "ObaidQadri/RD-Agent"
+      ]
+    },
+    {
+      "trial": 25,
+      "held_out": [
+        "aza-ali/github-readme-crisp-links",
+        "firedvl/systematic-trading-lab"
+      ],
+      "ranks": [
+        12,
+        48
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 168,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0241
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "Thesirix/Thesirix",
+        "pCresp0/porra-mundial-nanos-2026",
+        "DataBiosphere/toil",
+        "onyx-dot-app/onyx",
+        "Simmons-Systems/simsys-metrics",
+        "kornia/kornia",
+        "getsentry/sentry",
+        "ObaidQadri/RD-Agent"
+      ]
+    },
+    {
+      "trial": 26,
+      "held_out": [
+        "aza-ali/github-readme-crisp-links",
+        "Kaelvior392751/fieldservice-signed-csv-export"
+      ],
+      "ranks": [
+        10,
+        33
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 171,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0568
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "Thesirix/Thesirix",
+        "pCresp0/porra-mundial-nanos-2026",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "Simmons-Systems/simsys-metrics",
+        "ObaidQadri/RD-Agent",
+        "getsentry/sentry",
+        "aza-ali/github-readme-crisp-links"
+      ]
+    },
+    {
+      "trial": 27,
+      "held_out": [
+        "aza-ali/github-readme-crisp-links",
+        "Kozea/Radicale"
+      ],
+      "ranks": [
+        13,
+        11
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 173,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0782
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "Thesirix/Thesirix",
+        "onyx-dot-app/onyx",
+        "pCresp0/porra-mundial-nanos-2026",
+        "DataBiosphere/toil",
+        "Simmons-Systems/simsys-metrics",
+        "kornia/kornia",
+        "getsentry/sentry",
+        "ObaidQadri/RD-Agent"
+      ]
+    },
+    {
+      "trial": 28,
+      "held_out": [
+        "aza-ali/github-readme-crisp-links",
+        "PetervanLunteren/AddaxAI-Connect"
+      ],
+      "ranks": [
+        14,
+        56
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 176,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0931
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "Thesirix/Thesirix",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "pCresp0/porra-mundial-nanos-2026",
+        "kornia/kornia",
+        "ObaidQadri/RD-Agent",
+        "Simmons-Systems/simsys-metrics",
+        "getsentry/sentry"
+      ]
+    },
+    {
+      "trial": 29,
+      "held_out": [
+        "aza-ali/github-readme-crisp-links",
+        "Skyvern-AI/skyvern"
+      ],
+      "ranks": [
+        11,
+        4
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 164,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 6.9912
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "Thesirix/Thesirix",
+        "Skyvern-AI/skyvern",
+        "pCresp0/porra-mundial-nanos-2026",
+        "DataBiosphere/toil",
+        "onyx-dot-app/onyx",
+        "Simmons-Systems/simsys-metrics",
+        "kornia/kornia",
+        "getsentry/sentry"
+      ]
+    },
+    {
+      "trial": 30,
+      "held_out": [
+        "eriknovak/datachart",
+        "firedvl/systematic-trading-lab"
+      ],
+      "ranks": [
+        31,
+        48
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 170,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0479
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "Simmons-Systems/simsys-metrics",
+        "ObaidQadri/RD-Agent",
+        "getsentry/sentry",
+        "kornia/kornia"
+      ]
+    },
+    {
+      "trial": 31,
+      "held_out": [
+        "eriknovak/datachart",
+        "Kaelvior392751/fieldservice-signed-csv-export"
+      ],
+      "ranks": [
+        31,
+        38
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 173,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0801
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "onyx-dot-app/onyx",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "DataBiosphere/toil",
+        "ObaidQadri/RD-Agent",
+        "getsentry/sentry",
+        "kornia/kornia",
+        "Simmons-Systems/simsys-metrics"
+      ]
+    },
+    {
+      "trial": 32,
+      "held_out": [
+        "eriknovak/datachart",
+        "Kozea/Radicale"
+      ],
+      "ranks": [
+        37,
+        13
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 175,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.1012
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "Simmons-Systems/simsys-metrics",
+        "ObaidQadri/RD-Agent",
+        "getsentry/sentry",
+        "kornia/kornia"
+      ]
+    },
+    {
+      "trial": 33,
+      "held_out": [
+        "eriknovak/datachart",
+        "PetervanLunteren/AddaxAI-Connect"
+      ],
+      "ranks": [
+        28,
+        50
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 178,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.116
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "Thesirix/Thesirix",
+        "pCresp0/porra-mundial-nanos-2026",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "ObaidQadri/RD-Agent",
+        "Simmons-Systems/simsys-metrics",
+        "kornia/kornia",
+        "getsentry/sentry"
+      ]
+    },
+    {
+      "trial": 34,
+      "held_out": [
+        "eriknovak/datachart",
+        "Skyvern-AI/skyvern"
+      ],
+      "ranks": [
+        31,
+        5
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 166,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0152
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "Thesirix/Thesirix",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Skyvern-AI/skyvern",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "Simmons-Systems/simsys-metrics",
+        "kornia/kornia",
+        "getsentry/sentry"
+      ]
+    },
+    {
+      "trial": 35,
+      "held_out": [
+        "firedvl/systematic-trading-lab",
+        "Kaelvior392751/fieldservice-signed-csv-export"
+      ],
+      "ranks": [
+        47,
+        37
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 167,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.015
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "ObaidQadri/RD-Agent",
+        "getsentry/sentry",
+        "kornia/kornia",
+        "Simmons-Systems/simsys-metrics"
+      ]
+    },
+    {
+      "trial": 36,
+      "held_out": [
+        "firedvl/systematic-trading-lab",
+        "Kozea/Radicale"
+      ],
+      "ranks": [
+        48,
+        11
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 169,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.037
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "Simmons-Systems/simsys-metrics",
+        "ObaidQadri/RD-Agent",
+        "getsentry/sentry",
+        "kornia/kornia"
+      ]
+    },
+    {
+      "trial": 37,
+      "held_out": [
+        "firedvl/systematic-trading-lab",
+        "PetervanLunteren/AddaxAI-Connect"
+      ],
+      "ranks": [
+        47,
+        50
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 172,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0527
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "Thesirix/Thesirix",
+        "pCresp0/porra-mundial-nanos-2026",
+        "DataBiosphere/toil",
+        "onyx-dot-app/onyx",
+        "ObaidQadri/RD-Agent",
+        "Simmons-Systems/simsys-metrics",
+        "kornia/kornia",
+        "getsentry/sentry"
+      ]
+    },
+    {
+      "trial": 38,
+      "held_out": [
+        "firedvl/systematic-trading-lab",
+        "Skyvern-AI/skyvern"
+      ],
+      "ranks": [
+        46,
+        5
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 160,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 6.9469
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "Thesirix/Thesirix",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Skyvern-AI/skyvern",
+        "DataBiosphere/toil",
+        "onyx-dot-app/onyx",
+        "Simmons-Systems/simsys-metrics",
+        "kornia/kornia",
+        "getsentry/sentry"
+      ]
+    },
+    {
+      "trial": 39,
+      "held_out": [
+        "Kaelvior392751/fieldservice-signed-csv-export",
+        "Kozea/Radicale"
+      ],
+      "ranks": [
+        37,
+        11
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 172,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0695
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "onyx-dot-app/onyx",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "DataBiosphere/toil",
+        "ObaidQadri/RD-Agent",
+        "getsentry/sentry",
+        "kornia/kornia",
+        "Simmons-Systems/simsys-metrics"
+      ]
+    },
+    {
+      "trial": 40,
+      "held_out": [
+        "Kaelvior392751/fieldservice-signed-csv-export",
+        "PetervanLunteren/AddaxAI-Connect"
+      ],
+      "ranks": [
+        33,
+        49
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 175,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0847
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Thesirix/Thesirix",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "ObaidQadri/RD-Agent",
+        "Simmons-Systems/simsys-metrics",
+        "kornia/kornia",
+        "getsentry/sentry"
+      ]
+    },
+    {
+      "trial": 41,
+      "held_out": [
+        "Kaelvior392751/fieldservice-signed-csv-export",
+        "Skyvern-AI/skyvern"
+      ],
+      "ranks": [
+        35,
+        4
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 163,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 6.9815
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "Thesirix/Thesirix",
+        "Skyvern-AI/skyvern",
+        "pCresp0/porra-mundial-nanos-2026",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "getsentry/sentry",
+        "kornia/kornia",
+        "Simmons-Systems/simsys-metrics"
+      ]
+    },
+    {
+      "trial": 42,
+      "held_out": [
+        "Kozea/Radicale",
+        "PetervanLunteren/AddaxAI-Connect"
+      ],
+      "ranks": [
+        11,
+        51
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 177,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.1056
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "Thesirix/Thesirix",
+        "pCresp0/porra-mundial-nanos-2026",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "ObaidQadri/RD-Agent",
+        "Simmons-Systems/simsys-metrics",
+        "kornia/kornia",
+        "getsentry/sentry"
+      ]
+    },
+    {
+      "trial": 43,
+      "held_out": [
+        "Kozea/Radicale",
+        "Skyvern-AI/skyvern"
+      ],
+      "ranks": [
+        11,
+        5
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 165,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.004
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "Thesirix/Thesirix",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Skyvern-AI/skyvern",
+        "onyx-dot-app/onyx",
+        "DataBiosphere/toil",
+        "Simmons-Systems/simsys-metrics",
+        "kornia/kornia",
+        "getsentry/sentry"
+      ]
+    },
+    {
+      "trial": 44,
+      "held_out": [
+        "PetervanLunteren/AddaxAI-Connect",
+        "Skyvern-AI/skyvern"
+      ],
+      "ranks": [
+        50,
+        5
+      ],
+      "candidate_count": 207,
+      "training_star_count": 8,
+      "profile": {
+        "active_languages": 6,
+        "dominant_language": "Python",
+        "topic_count": 168,
+        "strong_topic_count": 1,
+        "topic_entropy_bits": 7.0193
+      },
+      "top_10": [
+        "PostHog/posthog",
+        "PrefectHQ/prefect",
+        "Thesirix/Thesirix",
+        "pCresp0/porra-mundial-nanos-2026",
+        "Skyvern-AI/skyvern",
+        "DataBiosphere/toil",
+        "onyx-dot-app/onyx",
+        "Simmons-Systems/simsys-metrics",
+        "kornia/kornia",
+        "getsentry/sentry"
+      ]
+    }
+  ],
+  "held_out_diagnostics": [
+    {
+      "repository": "1kbgz/spaday",
+      "rank": 17,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "javascript",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "browser",
+        "python"
+      ],
+      "stars": 8,
+      "pushed_at": "2026-08-25T17:49:42Z",
+      "score_components": {
+        "topic": 0.12141,
+        "language": 0.25,
+        "keyword": 0.034,
+        "activity": 0.1,
+        "quality": 0.023856
+      },
+      "nearest_training_similarity": 0.3778,
+      "max_similarity_to_higher_ranked": 0.37,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "apache/airflow",
+      "rank": 7,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "automation",
+        "etl",
+        "machine-learning",
+        "python",
+        "workflow"
+      ],
+      "matched_training_keywords": [
+        "platform",
+        "workflows"
+      ],
+      "stars": 46607,
+      "pushed_at": "2026-08-25T18:48:59Z",
+      "score_components": {
+        "topic": 0.12578,
+        "language": 0.25,
+        "keyword": 0.019448,
+        "activity": 0.1,
+        "quality": 0.1
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.4815,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "1kbgz/spaday",
+      "rank": 15,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "javascript",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "browser",
+        "python"
+      ],
+      "stars": 8,
+      "pushed_at": "2026-08-25T17:49:42Z",
+      "score_components": {
+        "topic": 0.12141,
+        "language": 0.25,
+        "keyword": 0.034,
+        "activity": 0.1,
+        "quality": 0.023856
+      },
+      "nearest_training_similarity": 0.3778,
+      "max_similarity_to_higher_ranked": 0.37,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "axide-dev/axidev-osk",
+      "rank": 48,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python",
+        "windows"
+      ],
+      "matched_training_keywords": [],
+      "stars": 3,
+      "pushed_at": "2026-08-25T17:43:15Z",
+      "score_components": {
+        "topic": 0.09804,
+        "language": 0.25,
+        "keyword": 0.0,
+        "activity": 0.1,
+        "quality": 0.015051
+      },
+      "nearest_training_similarity": 0.4,
+      "max_similarity_to_higher_ranked": 0.4273,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "1kbgz/spaday",
+      "rank": 15,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "javascript",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "browser",
+        "python"
+      ],
+      "stars": 8,
+      "pushed_at": "2026-08-25T17:49:42Z",
+      "score_components": {
+        "topic": 0.12141,
+        "language": 0.25,
+        "keyword": 0.0476,
+        "activity": 0.1,
+        "quality": 0.023856
+      },
+      "nearest_training_similarity": 0.3778,
+      "max_similarity_to_higher_ranked": 0.37,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "aza-ali/github-readme-crisp-links",
+      "rank": 10,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "github-profile",
+        "markdown",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "app",
+        "github",
+        "readme",
+        "web"
+      ],
+      "stars": 72,
+      "pushed_at": "2026-05-17T22:58:53Z",
+      "score_components": {
+        "topic": 0.10507,
+        "language": 0.25,
+        "keyword": 0.07616,
+        "activity": 0.086438,
+        "quality": 0.046583
+      },
+      "nearest_training_similarity": 0.3778,
+      "max_similarity_to_higher_ranked": 0.356,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "1kbgz/spaday",
+      "rank": 15,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "javascript",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "browser",
+        "python"
+      ],
+      "stars": 8,
+      "pushed_at": "2026-08-25T17:49:42Z",
+      "score_components": {
+        "topic": 0.12141,
+        "language": 0.25,
+        "keyword": 0.034,
+        "activity": 0.1,
+        "quality": 0.023856
+      },
+      "nearest_training_similarity": 0.37,
+      "max_similarity_to_higher_ranked": 0.37,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "eriknovak/datachart",
+      "rank": 32,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "data",
+        "simple"
+      ],
+      "stars": 5,
+      "pushed_at": "2026-08-24T14:49:58Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.02091,
+        "activity": 0.1,
+        "quality": 0.022577
+      },
+      "nearest_training_similarity": 0.4167,
+      "max_similarity_to_higher_ranked": 0.3875,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "1kbgz/spaday",
+      "rank": 16,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "javascript",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "browser",
+        "python"
+      ],
+      "stars": 8,
+      "pushed_at": "2026-08-25T17:49:42Z",
+      "score_components": {
+        "topic": 0.12141,
+        "language": 0.25,
+        "keyword": 0.034,
+        "activity": 0.1,
+        "quality": 0.023856
+      },
+      "nearest_training_similarity": 0.3778,
+      "max_similarity_to_higher_ranked": 0.37,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "firedvl/systematic-trading-lab",
+      "rank": 48,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "platform"
+      ],
+      "stars": 1,
+      "pushed_at": "2026-08-25T10:16:03Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.009724,
+        "activity": 0.1,
+        "quality": 0.007526
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.45,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "1kbgz/spaday",
+      "rank": 19,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "javascript",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "browser",
+        "python"
+      ],
+      "stars": 8,
+      "pushed_at": "2026-08-25T17:49:42Z",
+      "score_components": {
+        "topic": 0.12141,
+        "language": 0.25,
+        "keyword": 0.02431,
+        "activity": 0.1,
+        "quality": 0.023856
+      },
+      "nearest_training_similarity": 0.3778,
+      "max_similarity_to_higher_ranked": 0.37,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Kaelvior392751/fieldservice-signed-csv-export",
+      "rank": 40,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "python"
+      ],
+      "stars": 1,
+      "pushed_at": "2026-08-21T20:33:09Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.011186,
+        "activity": 0.099589,
+        "quality": 0.007526
+      },
+      "nearest_training_similarity": 0.3875,
+      "max_similarity_to_higher_ranked": 0.37,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "1kbgz/spaday",
+      "rank": 16,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "javascript",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "browser",
+        "python"
+      ],
+      "stars": 8,
+      "pushed_at": "2026-08-25T17:49:42Z",
+      "score_components": {
+        "topic": 0.12141,
+        "language": 0.25,
+        "keyword": 0.034,
+        "activity": 0.1,
+        "quality": 0.023856
+      },
+      "nearest_training_similarity": 0.3778,
+      "max_similarity_to_higher_ranked": 0.37,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Kozea/Radicale",
+      "rank": 11,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "simple"
+      ],
+      "stars": 4929,
+      "pushed_at": "2026-08-24T18:57:01Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.009724,
+        "activity": 0.1,
+        "quality": 0.094399
+      },
+      "nearest_training_similarity": 0.4167,
+      "max_similarity_to_higher_ranked": 0.35,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "1kbgz/spaday",
+      "rank": 14,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "javascript",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "browser",
+        "python"
+      ],
+      "stars": 8,
+      "pushed_at": "2026-08-25T17:49:42Z",
+      "score_components": {
+        "topic": 0.11913,
+        "language": 0.25,
+        "keyword": 0.045764,
+        "activity": 0.1,
+        "quality": 0.023856
+      },
+      "nearest_training_similarity": 0.3778,
+      "max_similarity_to_higher_ranked": 0.37,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "PetervanLunteren/AddaxAI-Connect",
+      "rank": 50,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [],
+      "matched_training_keywords": [
+        "interface",
+        "system",
+        "web"
+      ],
+      "stars": 15,
+      "pushed_at": "2026-08-24T14:18:41Z",
+      "score_components": {
+        "topic": 0.0,
+        "language": 0.25,
+        "keyword": 0.052326,
+        "activity": 0.1,
+        "quality": 0.031382
+      },
+      "nearest_training_similarity": 0.3,
+      "max_similarity_to_higher_ranked": 0.3,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "1kbgz/spaday",
+      "rank": 20,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "javascript",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "browser",
+        "python"
+      ],
+      "stars": 8,
+      "pushed_at": "2026-08-25T17:49:42Z",
+      "score_components": {
+        "topic": 0.12141,
+        "language": 0.25,
+        "keyword": 0.024276,
+        "activity": 0.1,
+        "quality": 0.023856
+      },
+      "nearest_training_similarity": 0.3778,
+      "max_similarity_to_higher_ranked": 0.37,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Skyvern-AI/skyvern",
+      "rank": 5,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "automation",
+        "llm",
+        "python",
+        "workflow"
+      ],
+      "matched_training_keywords": [
+        "browser",
+        "workflows"
+      ],
+      "stars": 22849,
+      "pushed_at": "2026-08-25T00:19:54Z",
+      "score_components": {
+        "topic": 0.12578,
+        "language": 0.25,
+        "keyword": 0.013124,
+        "activity": 0.1,
+        "quality": 0.1
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.3778,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "apache/airflow",
+      "rank": 7,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "automation",
+        "etl",
+        "machine-learning",
+        "python",
+        "workflow"
+      ],
+      "matched_training_keywords": [
+        "platform",
+        "workflows"
+      ],
+      "stars": 46607,
+      "pushed_at": "2026-08-25T18:48:59Z",
+      "score_components": {
+        "topic": 0.12578,
+        "language": 0.25,
+        "keyword": 0.019448,
+        "activity": 0.1,
+        "quality": 0.1
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.4815,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "axide-dev/axidev-osk",
+      "rank": 47,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python",
+        "windows"
+      ],
+      "matched_training_keywords": [],
+      "stars": 3,
+      "pushed_at": "2026-08-25T17:43:15Z",
+      "score_components": {
+        "topic": 0.09804,
+        "language": 0.25,
+        "keyword": 0.0,
+        "activity": 0.1,
+        "quality": 0.015051
+      },
+      "nearest_training_similarity": 0.4,
+      "max_similarity_to_higher_ranked": 0.4273,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "apache/airflow",
+      "rank": 7,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "automation",
+        "etl",
+        "machine-learning",
+        "python",
+        "workflow"
+      ],
+      "matched_training_keywords": [
+        "platform",
+        "workflows"
+      ],
+      "stars": 46607,
+      "pushed_at": "2026-08-25T18:48:59Z",
+      "score_components": {
+        "topic": 0.12578,
+        "language": 0.25,
+        "keyword": 0.021556,
+        "activity": 0.1,
+        "quality": 0.1
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.4815,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "aza-ali/github-readme-crisp-links",
+      "rank": 11,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "github-profile",
+        "markdown",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "app",
+        "github",
+        "readme",
+        "web"
+      ],
+      "stars": 72,
+      "pushed_at": "2026-05-17T22:58:53Z",
+      "score_components": {
+        "topic": 0.10507,
+        "language": 0.25,
+        "keyword": 0.060452,
+        "activity": 0.086438,
+        "quality": 0.046583
+      },
+      "nearest_training_similarity": 0.3778,
+      "max_similarity_to_higher_ranked": 0.356,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "apache/airflow",
+      "rank": 7,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "automation",
+        "etl",
+        "machine-learning",
+        "python",
+        "workflow"
+      ],
+      "matched_training_keywords": [
+        "platform",
+        "workflows"
+      ],
+      "stars": 46607,
+      "pushed_at": "2026-08-25T18:48:59Z",
+      "score_components": {
+        "topic": 0.12578,
+        "language": 0.25,
+        "keyword": 0.019448,
+        "activity": 0.1,
+        "quality": 0.1
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.4815,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "eriknovak/datachart",
+      "rank": 31,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "data",
+        "simple"
+      ],
+      "stars": 5,
+      "pushed_at": "2026-08-24T14:49:58Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.02091,
+        "activity": 0.1,
+        "quality": 0.022577
+      },
+      "nearest_training_similarity": 0.4167,
+      "max_similarity_to_higher_ranked": 0.3875,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "apache/airflow",
+      "rank": 9,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "automation",
+        "etl",
+        "machine-learning",
+        "python",
+        "workflow"
+      ],
+      "matched_training_keywords": [
+        "workflows"
+      ],
+      "stars": 46607,
+      "pushed_at": "2026-08-25T18:48:59Z",
+      "score_components": {
+        "topic": 0.12578,
+        "language": 0.25,
+        "keyword": 0.009724,
+        "activity": 0.1,
+        "quality": 0.1
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.4815,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "firedvl/systematic-trading-lab",
+      "rank": 53,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [],
+      "stars": 1,
+      "pushed_at": "2026-08-25T10:16:03Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.0,
+        "activity": 0.1,
+        "quality": 0.007526
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.4647,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "apache/airflow",
+      "rank": 7,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "automation",
+        "etl",
+        "machine-learning",
+        "python",
+        "workflow"
+      ],
+      "matched_training_keywords": [
+        "platform",
+        "workflows"
+      ],
+      "stars": 46607,
+      "pushed_at": "2026-08-25T18:48:59Z",
+      "score_components": {
+        "topic": 0.12578,
+        "language": 0.25,
+        "keyword": 0.019448,
+        "activity": 0.1,
+        "quality": 0.1
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.4815,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Kaelvior392751/fieldservice-signed-csv-export",
+      "rank": 34,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "python"
+      ],
+      "stars": 1,
+      "pushed_at": "2026-08-21T20:33:09Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.020876,
+        "activity": 0.099589,
+        "quality": 0.007526
+      },
+      "nearest_training_similarity": 0.3875,
+      "max_similarity_to_higher_ranked": 0.3636,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "apache/airflow",
+      "rank": 7,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "automation",
+        "etl",
+        "machine-learning",
+        "python",
+        "workflow"
+      ],
+      "matched_training_keywords": [
+        "platform",
+        "workflows"
+      ],
+      "stars": 46607,
+      "pushed_at": "2026-08-25T18:48:59Z",
+      "score_components": {
+        "topic": 0.12578,
+        "language": 0.25,
+        "keyword": 0.019448,
+        "activity": 0.1,
+        "quality": 0.1
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.4815,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Kozea/Radicale",
+      "rank": 10,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "simple"
+      ],
+      "stars": 4929,
+      "pushed_at": "2026-08-24T18:57:01Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.009724,
+        "activity": 0.1,
+        "quality": 0.094399
+      },
+      "nearest_training_similarity": 0.4167,
+      "max_similarity_to_higher_ranked": 0.3467,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "apache/airflow",
+      "rank": 7,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "automation",
+        "etl",
+        "machine-learning",
+        "python",
+        "workflow"
+      ],
+      "matched_training_keywords": [
+        "platform",
+        "workflows"
+      ],
+      "stars": 46607,
+      "pushed_at": "2026-08-25T18:48:59Z",
+      "score_components": {
+        "topic": 0.123215,
+        "language": 0.25,
+        "keyword": 0.021556,
+        "activity": 0.1,
+        "quality": 0.1
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.4815,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "PetervanLunteren/AddaxAI-Connect",
+      "rank": 51,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [],
+      "matched_training_keywords": [
+        "interface",
+        "system",
+        "web"
+      ],
+      "stars": 15,
+      "pushed_at": "2026-08-24T14:18:41Z",
+      "score_components": {
+        "topic": 0.0,
+        "language": 0.25,
+        "keyword": 0.04318,
+        "activity": 0.1,
+        "quality": 0.031382
+      },
+      "nearest_training_similarity": 0.3,
+      "max_similarity_to_higher_ranked": 0.3,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "apache/airflow",
+      "rank": 11,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "automation",
+        "etl",
+        "machine-learning",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "platform"
+      ],
+      "stars": 46607,
+      "pushed_at": "2026-08-25T18:48:59Z",
+      "score_components": {
+        "topic": 0.111245,
+        "language": 0.25,
+        "keyword": 0.009724,
+        "activity": 0.1,
+        "quality": 0.1
+      },
+      "nearest_training_similarity": 0.3318,
+      "max_similarity_to_higher_ranked": 0.4815,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Skyvern-AI/skyvern",
+      "rank": 8,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "automation",
+        "llm",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "browser"
+      ],
+      "stars": 22849,
+      "pushed_at": "2026-08-25T00:19:54Z",
+      "score_components": {
+        "topic": 0.108205,
+        "language": 0.25,
+        "keyword": 0.013124,
+        "activity": 0.1,
+        "quality": 0.1
+      },
+      "nearest_training_similarity": 0.3389,
+      "max_similarity_to_higher_ranked": 0.3778,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "axide-dev/axidev-osk",
+      "rank": 45,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python",
+        "windows"
+      ],
+      "matched_training_keywords": [],
+      "stars": 3,
+      "pushed_at": "2026-08-25T17:43:15Z",
+      "score_components": {
+        "topic": 0.09804,
+        "language": 0.25,
+        "keyword": 0.0,
+        "activity": 0.1,
+        "quality": 0.015051
+      },
+      "nearest_training_similarity": 0.4,
+      "max_similarity_to_higher_ranked": 0.4077,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "aza-ali/github-readme-crisp-links",
+      "rank": 12,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "github-profile",
+        "markdown",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "app",
+        "github",
+        "readme",
+        "web"
+      ],
+      "stars": 72,
+      "pushed_at": "2026-05-17T22:58:53Z",
+      "score_components": {
+        "topic": 0.10507,
+        "language": 0.25,
+        "keyword": 0.060452,
+        "activity": 0.086438,
+        "quality": 0.046583
+      },
+      "nearest_training_similarity": 0.3778,
+      "max_similarity_to_higher_ranked": 0.356,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "axide-dev/axidev-osk",
+      "rank": 49,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python",
+        "windows"
+      ],
+      "matched_training_keywords": [],
+      "stars": 3,
+      "pushed_at": "2026-08-25T17:43:15Z",
+      "score_components": {
+        "topic": 0.09804,
+        "language": 0.25,
+        "keyword": 0.0,
+        "activity": 0.1,
+        "quality": 0.015051
+      },
+      "nearest_training_similarity": 0.3875,
+      "max_similarity_to_higher_ranked": 0.4273,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "eriknovak/datachart",
+      "rank": 30,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "data",
+        "simple"
+      ],
+      "stars": 5,
+      "pushed_at": "2026-08-24T14:49:58Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.02091,
+        "activity": 0.1,
+        "quality": 0.022577
+      },
+      "nearest_training_similarity": 0.4167,
+      "max_similarity_to_higher_ranked": 0.3875,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "axide-dev/axidev-osk",
+      "rank": 47,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python",
+        "windows"
+      ],
+      "matched_training_keywords": [],
+      "stars": 3,
+      "pushed_at": "2026-08-25T17:43:15Z",
+      "score_components": {
+        "topic": 0.09804,
+        "language": 0.25,
+        "keyword": 0.0,
+        "activity": 0.1,
+        "quality": 0.015051
+      },
+      "nearest_training_similarity": 0.4,
+      "max_similarity_to_higher_ranked": 0.4273,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "firedvl/systematic-trading-lab",
+      "rank": 48,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "platform"
+      ],
+      "stars": 1,
+      "pushed_at": "2026-08-25T10:16:03Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.009724,
+        "activity": 0.1,
+        "quality": 0.007526
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.45,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "axide-dev/axidev-osk",
+      "rank": 48,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python",
+        "windows"
+      ],
+      "matched_training_keywords": [],
+      "stars": 3,
+      "pushed_at": "2026-08-25T17:43:15Z",
+      "score_components": {
+        "topic": 0.09804,
+        "language": 0.25,
+        "keyword": 0.0,
+        "activity": 0.1,
+        "quality": 0.015051
+      },
+      "nearest_training_similarity": 0.4,
+      "max_similarity_to_higher_ranked": 0.4273,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Kaelvior392751/fieldservice-signed-csv-export",
+      "rank": 37,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "python"
+      ],
+      "stars": 1,
+      "pushed_at": "2026-08-21T20:33:09Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.020876,
+        "activity": 0.099589,
+        "quality": 0.007526
+      },
+      "nearest_training_similarity": 0.3875,
+      "max_similarity_to_higher_ranked": 0.3636,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "axide-dev/axidev-osk",
+      "rank": 49,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python",
+        "windows"
+      ],
+      "matched_training_keywords": [],
+      "stars": 3,
+      "pushed_at": "2026-08-25T17:43:15Z",
+      "score_components": {
+        "topic": 0.09804,
+        "language": 0.25,
+        "keyword": 0.0,
+        "activity": 0.1,
+        "quality": 0.015051
+      },
+      "nearest_training_similarity": 0.4,
+      "max_similarity_to_higher_ranked": 0.4273,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Kozea/Radicale",
+      "rank": 11,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "simple"
+      ],
+      "stars": 4929,
+      "pushed_at": "2026-08-24T18:57:01Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.009724,
+        "activity": 0.1,
+        "quality": 0.094399
+      },
+      "nearest_training_similarity": 0.4167,
+      "max_similarity_to_higher_ranked": 0.35,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "axide-dev/axidev-osk",
+      "rank": 46,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python",
+        "windows"
+      ],
+      "matched_training_keywords": [],
+      "stars": 3,
+      "pushed_at": "2026-08-25T17:43:15Z",
+      "score_components": {
+        "topic": 0.09785,
+        "language": 0.25,
+        "keyword": 0.0,
+        "activity": 0.1,
+        "quality": 0.015051
+      },
+      "nearest_training_similarity": 0.4,
+      "max_similarity_to_higher_ranked": 0.4273,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "PetervanLunteren/AddaxAI-Connect",
+      "rank": 51,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [],
+      "matched_training_keywords": [
+        "interface",
+        "system",
+        "web"
+      ],
+      "stars": 15,
+      "pushed_at": "2026-08-24T14:18:41Z",
+      "score_components": {
+        "topic": 0.0,
+        "language": 0.25,
+        "keyword": 0.04318,
+        "activity": 0.1,
+        "quality": 0.031382
+      },
+      "nearest_training_similarity": 0.3,
+      "max_similarity_to_higher_ranked": 0.3,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "axide-dev/axidev-osk",
+      "rank": 47,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python",
+        "windows"
+      ],
+      "matched_training_keywords": [],
+      "stars": 3,
+      "pushed_at": "2026-08-25T17:43:15Z",
+      "score_components": {
+        "topic": 0.09804,
+        "language": 0.25,
+        "keyword": 0.0,
+        "activity": 0.1,
+        "quality": 0.015051
+      },
+      "nearest_training_similarity": 0.4,
+      "max_similarity_to_higher_ranked": 0.4273,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Skyvern-AI/skyvern",
+      "rank": 5,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "automation",
+        "llm",
+        "python",
+        "workflow"
+      ],
+      "matched_training_keywords": [
+        "browser",
+        "workflows"
+      ],
+      "stars": 22849,
+      "pushed_at": "2026-08-25T00:19:54Z",
+      "score_components": {
+        "topic": 0.12578,
+        "language": 0.25,
+        "keyword": 0.022848,
+        "activity": 0.1,
+        "quality": 0.1
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.3778,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "aza-ali/github-readme-crisp-links",
+      "rank": 12,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "github-profile",
+        "markdown",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "app",
+        "github",
+        "readme",
+        "web"
+      ],
+      "stars": 72,
+      "pushed_at": "2026-05-17T22:58:53Z",
+      "score_components": {
+        "topic": 0.10507,
+        "language": 0.25,
+        "keyword": 0.060452,
+        "activity": 0.086438,
+        "quality": 0.046583
+      },
+      "nearest_training_similarity": 0.37,
+      "max_similarity_to_higher_ranked": 0.356,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "eriknovak/datachart",
+      "rank": 28,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "data",
+        "simple"
+      ],
+      "stars": 5,
+      "pushed_at": "2026-08-24T14:49:58Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.023188,
+        "activity": 0.1,
+        "quality": 0.022577
+      },
+      "nearest_training_similarity": 0.4167,
+      "max_similarity_to_higher_ranked": 0.3875,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "aza-ali/github-readme-crisp-links",
+      "rank": 12,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "github-profile",
+        "markdown",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "app",
+        "github",
+        "readme",
+        "web"
+      ],
+      "stars": 72,
+      "pushed_at": "2026-05-17T22:58:53Z",
+      "score_components": {
+        "topic": 0.10507,
+        "language": 0.25,
+        "keyword": 0.060452,
+        "activity": 0.086438,
+        "quality": 0.046583
+      },
+      "nearest_training_similarity": 0.3778,
+      "max_similarity_to_higher_ranked": 0.356,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "firedvl/systematic-trading-lab",
+      "rank": 48,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "platform"
+      ],
+      "stars": 1,
+      "pushed_at": "2026-08-25T10:16:03Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.010778,
+        "activity": 0.1,
+        "quality": 0.007526
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.45,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "aza-ali/github-readme-crisp-links",
+      "rank": 10,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "github-profile",
+        "markdown",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "app",
+        "github",
+        "readme",
+        "web"
+      ],
+      "stars": 72,
+      "pushed_at": "2026-05-17T22:58:53Z",
+      "score_components": {
+        "topic": 0.10507,
+        "language": 0.25,
+        "keyword": 0.07616,
+        "activity": 0.086438,
+        "quality": 0.046583
+      },
+      "nearest_training_similarity": 0.3778,
+      "max_similarity_to_higher_ranked": 0.356,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Kaelvior392751/fieldservice-signed-csv-export",
+      "rank": 33,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "python"
+      ],
+      "stars": 1,
+      "pushed_at": "2026-08-21T20:33:09Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.02924,
+        "activity": 0.099589,
+        "quality": 0.007526
+      },
+      "nearest_training_similarity": 0.3875,
+      "max_similarity_to_higher_ranked": 0.3636,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "aza-ali/github-readme-crisp-links",
+      "rank": 13,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "github-profile",
+        "markdown",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "app",
+        "github",
+        "readme",
+        "web"
+      ],
+      "stars": 72,
+      "pushed_at": "2026-05-17T22:58:53Z",
+      "score_components": {
+        "topic": 0.10507,
+        "language": 0.25,
+        "keyword": 0.060452,
+        "activity": 0.086438,
+        "quality": 0.046583
+      },
+      "nearest_training_similarity": 0.3778,
+      "max_similarity_to_higher_ranked": 0.37,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Kozea/Radicale",
+      "rank": 11,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "simple"
+      ],
+      "stars": 4929,
+      "pushed_at": "2026-08-24T18:57:01Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.010778,
+        "activity": 0.1,
+        "quality": 0.094399
+      },
+      "nearest_training_similarity": 0.4167,
+      "max_similarity_to_higher_ranked": 0.35,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "aza-ali/github-readme-crisp-links",
+      "rank": 14,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "github-profile",
+        "markdown",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "app",
+        "github",
+        "readme",
+        "web"
+      ],
+      "stars": 72,
+      "pushed_at": "2026-05-17T22:58:53Z",
+      "score_components": {
+        "topic": 0.10431,
+        "language": 0.25,
+        "keyword": 0.04964,
+        "activity": 0.086438,
+        "quality": 0.046583
+      },
+      "nearest_training_similarity": 0.3778,
+      "max_similarity_to_higher_ranked": 0.356,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "PetervanLunteren/AddaxAI-Connect",
+      "rank": 56,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [],
+      "matched_training_keywords": [
+        "interface",
+        "system",
+        "web"
+      ],
+      "stars": 15,
+      "pushed_at": "2026-08-24T14:18:41Z",
+      "score_components": {
+        "topic": 0.0,
+        "language": 0.25,
+        "keyword": 0.032368,
+        "activity": 0.1,
+        "quality": 0.031382
+      },
+      "nearest_training_similarity": 0.3,
+      "max_similarity_to_higher_ranked": 0.3,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "aza-ali/github-readme-crisp-links",
+      "rank": 11,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "github-profile",
+        "markdown",
+        "python"
+      ],
+      "matched_training_keywords": [
+        "app",
+        "github",
+        "readme",
+        "web"
+      ],
+      "stars": 72,
+      "pushed_at": "2026-05-17T22:58:53Z",
+      "score_components": {
+        "topic": 0.10507,
+        "language": 0.25,
+        "keyword": 0.060452,
+        "activity": 0.086438,
+        "quality": 0.046583
+      },
+      "nearest_training_similarity": 0.3778,
+      "max_similarity_to_higher_ranked": 0.356,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Skyvern-AI/skyvern",
+      "rank": 4,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "automation",
+        "llm",
+        "python",
+        "workflow"
+      ],
+      "matched_training_keywords": [
+        "browser",
+        "workflows"
+      ],
+      "stars": 22849,
+      "pushed_at": "2026-08-25T00:19:54Z",
+      "score_components": {
+        "topic": 0.12578,
+        "language": 0.25,
+        "keyword": 0.025364,
+        "activity": 0.1,
+        "quality": 0.1
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.3778,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "eriknovak/datachart",
+      "rank": 31,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "data",
+        "simple"
+      ],
+      "stars": 5,
+      "pushed_at": "2026-08-24T14:49:58Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.02091,
+        "activity": 0.1,
+        "quality": 0.022577
+      },
+      "nearest_training_similarity": 0.4167,
+      "max_similarity_to_higher_ranked": 0.3875,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "firedvl/systematic-trading-lab",
+      "rank": 48,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "platform"
+      ],
+      "stars": 1,
+      "pushed_at": "2026-08-25T10:16:03Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.009724,
+        "activity": 0.1,
+        "quality": 0.007526
+      },
+      "nearest_training_similarity": 0.3583,
+      "max_similarity_to_higher_ranked": 0.45,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "eriknovak/datachart",
+      "rank": 31,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "data",
+        "simple"
+      ],
+      "stars": 5,
+      "pushed_at": "2026-08-24T14:49:58Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.02091,
+        "activity": 0.1,
+        "quality": 0.022577
+      },
+      "nearest_training_similarity": 0.4167,
+      "max_similarity_to_higher_ranked": 0.3875,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Kaelvior392751/fieldservice-signed-csv-export",
+      "rank": 38,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "python"
+      ],
+      "stars": 1,
+      "pushed_at": "2026-08-21T20:33:09Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.020876,
+        "activity": 0.099589,
+        "quality": 0.007526
+      },
+      "nearest_training_similarity": 0.3778,
+      "max_similarity_to_higher_ranked": 0.3875,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "eriknovak/datachart",
+      "rank": 37,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "data"
+      ],
+      "stars": 5,
+      "pushed_at": "2026-08-24T14:49:58Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.011186,
+        "activity": 0.1,
+        "quality": 0.022577
+      },
+      "nearest_training_similarity": 0.4,
+      "max_similarity_to_higher_ranked": 0.4167,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Kozea/Radicale",
+      "rank": 13,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [],
+      "stars": 4929,
+      "pushed_at": "2026-08-24T18:57:01Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.0,
+        "activity": 0.1,
+        "quality": 0.094399
+      },
+      "nearest_training_similarity": 0.3875,
+      "max_similarity_to_higher_ranked": 0.3583,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "eriknovak/datachart",
+      "rank": 28,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "data",
+        "simple"
+      ],
+      "stars": 5,
+      "pushed_at": "2026-08-24T14:49:58Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.023188,
+        "activity": 0.1,
+        "quality": 0.022577
+      },
+      "nearest_training_similarity": 0.4167,
+      "max_similarity_to_higher_ranked": 0.3875,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "PetervanLunteren/AddaxAI-Connect",
+      "rank": 50,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [],
+      "matched_training_keywords": [
+        "interface",
+        "system",
+        "web"
+      ],
+      "stars": 15,
+      "pushed_at": "2026-08-24T14:18:41Z",
+      "score_components": {
+        "topic": 0.0,
+        "language": 0.25,
+        "keyword": 0.04318,
+        "activity": 0.1,
+        "quality": 0.031382
+      },
+      "nearest_training_similarity": 0.3,
+      "max_similarity_to_higher_ranked": 0.3,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "eriknovak/datachart",
+      "rank": 31,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "data",
+        "simple"
+      ],
+      "stars": 5,
+      "pushed_at": "2026-08-24T14:49:58Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.02091,
+        "activity": 0.1,
+        "quality": 0.022577
+      },
+      "nearest_training_similarity": 0.4167,
+      "max_similarity_to_higher_ranked": 0.3875,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Skyvern-AI/skyvern",
+      "rank": 5,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "automation",
+        "llm",
+        "python",
+        "workflow"
+      ],
+      "matched_training_keywords": [
+        "browser",
+        "workflows"
+      ],
+      "stars": 22849,
+      "pushed_at": "2026-08-25T00:19:54Z",
+      "score_components": {
+        "topic": 0.12578,
+        "language": 0.25,
+        "keyword": 0.022848,
+        "activity": 0.1,
+        "quality": 0.1
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.3778,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "firedvl/systematic-trading-lab",
+      "rank": 47,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "platform"
+      ],
+      "stars": 1,
+      "pushed_at": "2026-08-25T10:16:03Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.009724,
+        "activity": 0.1,
+        "quality": 0.007526
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.45,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Kaelvior392751/fieldservice-signed-csv-export",
+      "rank": 37,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "python"
+      ],
+      "stars": 1,
+      "pushed_at": "2026-08-21T20:33:09Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.020876,
+        "activity": 0.099589,
+        "quality": 0.007526
+      },
+      "nearest_training_similarity": 0.3875,
+      "max_similarity_to_higher_ranked": 0.3636,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "firedvl/systematic-trading-lab",
+      "rank": 48,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "platform"
+      ],
+      "stars": 1,
+      "pushed_at": "2026-08-25T10:16:03Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.009724,
+        "activity": 0.1,
+        "quality": 0.007526
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.45,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Kozea/Radicale",
+      "rank": 11,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "simple"
+      ],
+      "stars": 4929,
+      "pushed_at": "2026-08-24T18:57:01Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.009724,
+        "activity": 0.1,
+        "quality": 0.094399
+      },
+      "nearest_training_similarity": 0.4167,
+      "max_similarity_to_higher_ranked": 0.35,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "firedvl/systematic-trading-lab",
+      "rank": 47,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "platform"
+      ],
+      "stars": 1,
+      "pushed_at": "2026-08-25T10:16:03Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.010778,
+        "activity": 0.1,
+        "quality": 0.007526
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.45,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "PetervanLunteren/AddaxAI-Connect",
+      "rank": 50,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [],
+      "matched_training_keywords": [
+        "interface",
+        "system",
+        "web"
+      ],
+      "stars": 15,
+      "pushed_at": "2026-08-24T14:18:41Z",
+      "score_components": {
+        "topic": 0.0,
+        "language": 0.25,
+        "keyword": 0.04318,
+        "activity": 0.1,
+        "quality": 0.031382
+      },
+      "nearest_training_similarity": 0.3,
+      "max_similarity_to_higher_ranked": 0.3,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "firedvl/systematic-trading-lab",
+      "rank": 46,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "platform"
+      ],
+      "stars": 1,
+      "pushed_at": "2026-08-25T10:16:03Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.009724,
+        "activity": 0.1,
+        "quality": 0.007526
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.45,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Skyvern-AI/skyvern",
+      "rank": 5,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "automation",
+        "llm",
+        "python",
+        "workflow"
+      ],
+      "matched_training_keywords": [
+        "browser",
+        "workflows"
+      ],
+      "stars": 22849,
+      "pushed_at": "2026-08-25T00:19:54Z",
+      "score_components": {
+        "topic": 0.12578,
+        "language": 0.25,
+        "keyword": 0.022848,
+        "activity": 0.1,
+        "quality": 0.1
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.3778,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Kaelvior392751/fieldservice-signed-csv-export",
+      "rank": 37,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "python"
+      ],
+      "stars": 1,
+      "pushed_at": "2026-08-21T20:33:09Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.020876,
+        "activity": 0.099589,
+        "quality": 0.007526
+      },
+      "nearest_training_similarity": 0.3875,
+      "max_similarity_to_higher_ranked": 0.3778,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Kozea/Radicale",
+      "rank": 11,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "simple"
+      ],
+      "stars": 4929,
+      "pushed_at": "2026-08-24T18:57:01Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.009724,
+        "activity": 0.1,
+        "quality": 0.094399
+      },
+      "nearest_training_similarity": 0.4167,
+      "max_similarity_to_higher_ranked": 0.35,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Kaelvior392751/fieldservice-signed-csv-export",
+      "rank": 33,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "python"
+      ],
+      "stars": 1,
+      "pushed_at": "2026-08-21T20:33:09Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.028118,
+        "activity": 0.099589,
+        "quality": 0.007526
+      },
+      "nearest_training_similarity": 0.3875,
+      "max_similarity_to_higher_ranked": 0.3636,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "PetervanLunteren/AddaxAI-Connect",
+      "rank": 49,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [],
+      "matched_training_keywords": [
+        "interface",
+        "system",
+        "web"
+      ],
+      "stars": 15,
+      "pushed_at": "2026-08-24T14:18:41Z",
+      "score_components": {
+        "topic": 0.0,
+        "language": 0.25,
+        "keyword": 0.052326,
+        "activity": 0.1,
+        "quality": 0.031382
+      },
+      "nearest_training_similarity": 0.3,
+      "max_similarity_to_higher_ranked": 0.3,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Kaelvior392751/fieldservice-signed-csv-export",
+      "rank": 35,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "python"
+      ],
+      "stars": 1,
+      "pushed_at": "2026-08-21T20:33:09Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.020876,
+        "activity": 0.099589,
+        "quality": 0.007526
+      },
+      "nearest_training_similarity": 0.3875,
+      "max_similarity_to_higher_ranked": 0.3636,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Skyvern-AI/skyvern",
+      "rank": 4,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "automation",
+        "llm",
+        "python",
+        "workflow"
+      ],
+      "matched_training_keywords": [
+        "browser",
+        "workflows"
+      ],
+      "stars": 22849,
+      "pushed_at": "2026-08-25T00:19:54Z",
+      "score_components": {
+        "topic": 0.12578,
+        "language": 0.25,
+        "keyword": 0.022848,
+        "activity": 0.1,
+        "quality": 0.1
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.3778,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Kozea/Radicale",
+      "rank": 11,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "simple"
+      ],
+      "stars": 4929,
+      "pushed_at": "2026-08-24T18:57:01Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.010778,
+        "activity": 0.1,
+        "quality": 0.094399
+      },
+      "nearest_training_similarity": 0.4167,
+      "max_similarity_to_higher_ranked": 0.35,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "PetervanLunteren/AddaxAI-Connect",
+      "rank": 51,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [],
+      "matched_training_keywords": [
+        "interface",
+        "system",
+        "web"
+      ],
+      "stars": 15,
+      "pushed_at": "2026-08-24T14:18:41Z",
+      "score_components": {
+        "topic": 0.0,
+        "language": 0.25,
+        "keyword": 0.04318,
+        "activity": 0.1,
+        "quality": 0.031382
+      },
+      "nearest_training_similarity": 0.3,
+      "max_similarity_to_higher_ranked": 0.3,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Kozea/Radicale",
+      "rank": 11,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "python"
+      ],
+      "matched_training_keywords": [
+        "simple"
+      ],
+      "stars": 4929,
+      "pushed_at": "2026-08-24T18:57:01Z",
+      "score_components": {
+        "topic": 0.095,
+        "language": 0.25,
+        "keyword": 0.009724,
+        "activity": 0.1,
+        "quality": 0.094399
+      },
+      "nearest_training_similarity": 0.4167,
+      "max_similarity_to_higher_ranked": 0.35,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Skyvern-AI/skyvern",
+      "rank": 5,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "automation",
+        "llm",
+        "python",
+        "workflow"
+      ],
+      "matched_training_keywords": [
+        "browser",
+        "workflows"
+      ],
+      "stars": 22849,
+      "pushed_at": "2026-08-25T00:19:54Z",
+      "score_components": {
+        "topic": 0.12578,
+        "language": 0.25,
+        "keyword": 0.022848,
+        "activity": 0.1,
+        "quality": 0.1
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.3778,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "PetervanLunteren/AddaxAI-Connect",
+      "rank": 50,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [],
+      "matched_training_keywords": [
+        "interface",
+        "system",
+        "web"
+      ],
+      "stars": 15,
+      "pushed_at": "2026-08-24T14:18:41Z",
+      "score_components": {
+        "topic": 0.0,
+        "language": 0.25,
+        "keyword": 0.04318,
+        "activity": 0.1,
+        "quality": 0.031382
+      },
+      "nearest_training_similarity": 0.3,
+      "max_similarity_to_higher_ranked": 0.3,
+      "redundancy_suppressed": false
+    },
+    {
+      "repository": "Skyvern-AI/skyvern",
+      "rank": 5,
+      "language": "Python",
+      "language_is_dominant_training_language": true,
+      "training_language_weight": 1.0,
+      "matched_training_topics": [
+        "automation",
+        "llm",
+        "python",
+        "workflow"
+      ],
+      "matched_training_keywords": [
+        "browser",
+        "workflows"
+      ],
+      "stars": 22849,
+      "pushed_at": "2026-08-25T00:19:54Z",
+      "score_components": {
+        "topic": 0.123215,
+        "language": 0.25,
+        "keyword": 0.025364,
+        "activity": 0.1,
+        "quality": 0.1
+      },
+      "nearest_training_similarity": 0.3636,
+      "max_similarity_to_higher_ranked": 0.3778,
+      "redundancy_suppressed": false
+    }
+  ]
+}

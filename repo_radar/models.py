@@ -23,6 +23,9 @@ class Repository:
     pushed_at: str | None = None
     owner: str = ""
     url: str = ""
+    # recorded so held-out evaluation snapshots can prove a repository is public before
+    # committing its identity; ranking and discovery deliberately ignore it
+    private: bool = False
 
     @classmethod
     def from_github(cls, value: dict[str, Any]) -> Repository:
@@ -46,6 +49,7 @@ class Repository:
             pushed_at=value.get("pushed_at"),
             owner=str(owner.get("login", "")),
             url=str(value.get("html_url", "")),
+            private=bool(value.get("private", False)),
         )
 
     @classmethod

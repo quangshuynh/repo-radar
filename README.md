@@ -150,7 +150,17 @@ python -m repo_radar.evaluation
 
 The evaluation reports NDCG@10, Precision@10, Recall@10, MRR, a redundancy diagnostic, and popularity-bias diagnostics for several preference scenarios. It contacts no network service and reads no local `data/` state.
 
-See [evaluation/README.md](evaluation/README.md) for the corpus methodology, label definitions, and limitations.
+A second, independent evaluation hides some of the user's real starred repositories, rebuilds the preference profile from the rest, and measures whether the ranker recovers them from a pool of real GitHub distractors:
+
+```bash
+python -m repo_radar.heldout_evaluation
+```
+
+This reports Hit Rate@5/@10, Recall@10, MRR, and the held-out rank distribution, alongside popularity/activity/random baselines and evaluation-only language-weighting ablations. It reads a frozen snapshot in `evaluation/heldout/` and contacts no network service.
+
+A GitHub star is a **behavioral proxy, not ground truth** — it may represent a bookmark, a dependency, or past curiosity as easily as current interest.
+
+See [evaluation/README.md](evaluation/README.md) for both methodologies, label definitions, and limitations.
 
 ## Local data and privacy
 

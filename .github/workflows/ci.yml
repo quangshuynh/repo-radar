@@ -40,6 +40,13 @@ jobs:
       - name: Run the offline recommendation evaluation
         run: python -m repo_radar.evaluation
 
+      # A full held-out run ranks a 200 candidate pool four times over 45 trials, which is
+      # minutes of greedy re-scoring. CI checks that the frozen snapshot parses and the
+      # experiment executes end to end; correctness, determinism, and leakage prevention
+      # are covered by the test suite above. No metric thresholds are enforced.
+      - name: Run the held-out star evaluation smoke check
+        run: python -m repo_radar.heldout_evaluation --max-trials 3 --window 25
+
       - name: Run Ruff lint checks
         run: python -m ruff check .
 
