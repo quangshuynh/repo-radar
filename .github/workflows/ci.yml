@@ -37,6 +37,9 @@ jobs:
       - name: Run tests
         run: python -m pytest
 
+      - name: Run the offline recommendation evaluation
+        run: python -m repo_radar.evaluation
+
       - name: Run Ruff lint checks
         run: python -m ruff check .
 

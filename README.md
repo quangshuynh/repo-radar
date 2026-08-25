@@ -140,6 +140,18 @@ Repo Radar builds targeted searches from the strongest profile languages and top
 
 The ranking system uses weighted counts and readable heuristics rather than embeddings, language models, or opaque machine-learning models.
 
+## Recommendation evaluation
+
+Ranking quality is measured offline against a frozen repository corpus with explicit graded relevance labels:
+
+```bash
+python -m repo_radar.evaluation
+```
+
+The evaluation reports NDCG@10, Precision@10, Recall@10, MRR, a redundancy diagnostic, and popularity-bias diagnostics for several preference scenarios. It contacts no network service and reads no local `data/` state.
+
+See [evaluation/README.md](evaluation/README.md) for the corpus methodology, label definitions, and limitations.
+
 ## Local data and privacy
 
 Private application state is stored as JSON under `data/`:

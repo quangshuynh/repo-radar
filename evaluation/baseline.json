@@ -1,0 +1,345 @@
+{
+  "corpus_snapshot_date": "2026-08-25",
+  "corpus_size": 48,
+  "top_k": 10,
+  "relevant_threshold": 2,
+  "strongly_relevant_threshold": 3,
+  "scenarios": [
+    {
+      "scenario": "narrow_python_tooling",
+      "name": "Narrow Python tooling",
+      "description": "A concentrated profile: Python plus automation plus command line and developer tooling.",
+      "candidate_count": 46,
+      "relevant_candidate_count": 11,
+      "metrics": {
+        "ndcg_at_10": 0.9494,
+        "precision_at_10": 1.0,
+        "recall_at_10": 0.9091,
+        "mrr": 1.0
+      },
+      "diagnostics": {
+        "mean_pairwise_similarity_top_k": 0.6019,
+        "maximum_pairwise_similarity_top_k": 1.0,
+        "popularity": {
+          "candidate_median_stars": 3550.0,
+          "top_k_median_stars": 1750.0,
+          "top_k_median_star_ratio": 0.493,
+          "relevant_low_star_in_top_k": [
+            "taskforge/taskforge",
+            "shellsmith/shellsmith",
+            "dupetask/taskforge-lite",
+            "pyflowops/pyflow",
+            "dormant/autopilot-cli",
+            "chronotask/chronotask"
+          ],
+          "irrelevant_high_star_in_top_k": []
+        }
+      },
+      "ranking": [
+        {
+          "rank": 1,
+          "repository": "taskforge/taskforge",
+          "score": 0.746223,
+          "label": 3,
+          "stars": 480,
+          "explanation": "strong match for Python, cli, automation"
+        },
+        {
+          "rank": 2,
+          "repository": "clikit-dev/clikit",
+          "score": 0.590131,
+          "label": 3,
+          "stars": 15200,
+          "explanation": "strong match for Python, cli, developer-tools"
+        },
+        {
+          "rank": 3,
+          "repository": "shellsmith/shellsmith",
+          "score": 0.577146,
+          "label": 3,
+          "stars": 320,
+          "explanation": "strong match for Python, cli, automation"
+        },
+        {
+          "rank": 4,
+          "repository": "tidyenv/tidyenv",
+          "score": 0.561188,
+          "label": 3,
+          "stars": 7400,
+          "explanation": "strong match for Python, cli, developer-tools"
+        },
+        {
+          "rank": 5,
+          "repository": "dupetask/taskforge-lite",
+          "score": 0.544819,
+          "label": 3,
+          "stars": 430,
+          "explanation": "strong match for Python, cli, automation"
+        },
+        {
+          "rank": 6,
+          "repository": "sechawk/depaudit",
+          "score": 0.499573,
+          "label": 2,
+          "stars": 3700,
+          "explanation": "strong match for Python, cli, developer-tools"
+        },
+        {
+          "rank": 7,
+          "repository": "pyflowops/pyflow",
+          "score": 0.488367,
+          "label": 3,
+          "stars": 2100,
+          "explanation": "strong match for Python, automation, developer-tools"
+        },
+        {
+          "rank": 8,
+          "repository": "dormant/autopilot-cli",
+          "score": 0.474123,
+          "label": 2,
+          "stars": 1400,
+          "explanation": "strong match for Python, cli, automation"
+        },
+        {
+          "rank": 9,
+          "repository": "chronotask/chronotask",
+          "score": 0.451324,
+          "label": 2,
+          "stars": 210,
+          "explanation": "strong match for Python, cli, automation"
+        },
+        {
+          "rank": 10,
+          "repository": "oldtools/taskrunner-classic",
+          "score": 0.444646,
+          "label": 2,
+          "stars": 5600,
+          "explanation": "strong match for Python, cli, automation"
+        }
+      ]
+    },
+    {
+      "scenario": "broad_infra_systems",
+      "name": "Broad infrastructure and systems",
+      "description": "A broader profile across Rust and Go systems work, infrastructure, observability, and performance.",
+      "candidate_count": 45,
+      "relevant_candidate_count": 10,
+      "metrics": {
+        "ndcg_at_10": 0.8385,
+        "precision_at_10": 0.8,
+        "recall_at_10": 0.8,
+        "mrr": 0.5
+      },
+      "diagnostics": {
+        "mean_pairwise_similarity_top_k": 0.2343,
+        "maximum_pairwise_similarity_top_k": 1.0,
+        "popularity": {
+          "candidate_median_stars": 3300.0,
+          "top_k_median_stars": 6500.0,
+          "top_k_median_star_ratio": 1.9697,
+          "relevant_low_star_in_top_k": [
+            "gopher-ops/kubetidy-plus",
+            "systemsmith/tracewatch"
+          ],
+          "irrelevant_high_star_in_top_k": [
+            "docsmith/mdbookery",
+            "clikit-dev/clikit"
+          ]
+        }
+      },
+      "ranking": [
+        {
+          "rank": 1,
+          "repository": "sechawk/secretsniff",
+          "score": 0.693169,
+          "label": 2,
+          "stars": 6800,
+          "explanation": "strong match for Go, cli, go"
+        },
+        {
+          "rank": 2,
+          "repository": "rustforge/ripgrind",
+          "score": 0.582979,
+          "label": 3,
+          "stars": 42000,
+          "explanation": "strong match for Rust, cli, performance"
+        },
+        {
+          "rank": 3,
+          "repository": "gopher-ops/kubetidy",
+          "score": 0.540784,
+          "label": 3,
+          "stars": 6200,
+          "explanation": "strong match for Go, cli, go"
+        },
+        {
+          "rank": 4,
+          "repository": "gopher-ops/kubetidy-plus",
+          "score": 0.444182,
+          "label": 3,
+          "stars": 540,
+          "explanation": "strong match for Go, cli, go"
+        },
+        {
+          "rank": 5,
+          "repository": "stale-infra/clusterctl-old",
+          "score": 0.40448,
+          "label": 2,
+          "stars": 8900,
+          "explanation": "strong match for Go, cli, go"
+        },
+        {
+          "rank": 6,
+          "repository": "systemsmith/tracewatch",
+          "score": 0.393239,
+          "label": 3,
+          "stars": 3100,
+          "explanation": "strong match for Rust, observability, performance"
+        },
+        {
+          "rank": 7,
+          "repository": "docsmith/mdbookery",
+          "score": 0.375743,
+          "label": 1,
+          "stars": 4900,
+          "explanation": "strong match for Rust, cli, rust"
+        },
+        {
+          "rank": 8,
+          "repository": "netcore/quicproxy",
+          "score": 0.347225,
+          "label": 3,
+          "stars": 5100,
+          "explanation": "strong match for Rust, performance, rust"
+        },
+        {
+          "rank": 9,
+          "repository": "dbforge/rowstore",
+          "score": 0.307996,
+          "label": 2,
+          "stars": 11000,
+          "explanation": "strong match for Rust, rust"
+        },
+        {
+          "rank": 10,
+          "repository": "clikit-dev/clikit",
+          "score": 0.290616,
+          "label": 1,
+          "stars": 15200,
+          "explanation": "strong match for cli, developer-tools"
+        }
+      ]
+    },
+    {
+      "scenario": "mixed_web_and_data",
+      "name": "Mixed web and data",
+      "description": "A profile holding two distinct interests at once: TypeScript frontend work and Python data engineering and analytics.",
+      "candidate_count": 46,
+      "relevant_candidate_count": 8,
+      "metrics": {
+        "ndcg_at_10": 0.7447,
+        "precision_at_10": 0.7,
+        "recall_at_10": 0.875,
+        "mrr": 0.3333
+      },
+      "diagnostics": {
+        "mean_pairwise_similarity_top_k": 0.2005,
+        "maximum_pairwise_similarity_top_k": 0.65,
+        "popularity": {
+          "candidate_median_stars": 3550.0,
+          "top_k_median_stars": 6300.0,
+          "top_k_median_star_ratio": 1.7746,
+          "relevant_low_star_in_top_k": [
+            "datacrew/schemaguard",
+            "formsmith/formkit-lite"
+          ],
+          "irrelevant_high_star_in_top_k": [
+            "clikit-dev/clikit"
+          ]
+        }
+      },
+      "ranking": [
+        {
+          "rank": 1,
+          "repository": "datacrew/schemaguard",
+          "score": 0.71968,
+          "label": 2,
+          "stars": 940,
+          "explanation": "strong match for Python, data-engineering, etl"
+        },
+        {
+          "rank": 2,
+          "repository": "bundleworks/packrocket",
+          "score": 0.603553,
+          "label": 2,
+          "stars": 24000,
+          "explanation": "strong match for TypeScript, frontend, typescript"
+        },
+        {
+          "rank": 3,
+          "repository": "datacrew/frameflow",
+          "score": 0.566444,
+          "label": 3,
+          "stars": 5400,
+          "explanation": "strong match for Python, data-engineering, python"
+        },
+        {
+          "rank": 4,
+          "repository": "webcraft/signalstore",
+          "score": 0.500666,
+          "label": 3,
+          "stars": 7200,
+          "explanation": "strong match for TypeScript, frontend, typescript"
+        },
+        {
+          "rank": 5,
+          "repository": "formsmith/formkit-lite",
+          "score": 0.452084,
+          "label": 2,
+          "stars": 3400,
+          "explanation": "strong match for TypeScript, frontend, react"
+        },
+        {
+          "rank": 6,
+          "repository": "notebookery/plotcraft",
+          "score": 0.435261,
+          "label": 3,
+          "stars": 8600,
+          "explanation": "strong match for Python, python, analytics"
+        },
+        {
+          "rank": 7,
+          "repository": "clikit-dev/clikit",
+          "score": 0.428416,
+          "label": 1,
+          "stars": 15200,
+          "explanation": "strong match for Python, python"
+        },
+        {
+          "rank": 8,
+          "repository": "homecook/recipebox",
+          "score": 0.424257,
+          "label": 1,
+          "stars": 260,
+          "explanation": "strong match for Python, web"
+        },
+        {
+          "rank": 9,
+          "repository": "frontline/uikit-mega",
+          "score": 0.414726,
+          "label": 2,
+          "stars": 88000,
+          "explanation": "strong match for TypeScript, frontend"
+        },
+        {
+          "rank": 10,
+          "repository": "pyflowops/pyflow",
+          "score": 0.383651,
+          "label": 1,
+          "stars": 2100,
+          "explanation": "strong match for Python, python"
+        }
+      ]
+    }
+  ]
+}

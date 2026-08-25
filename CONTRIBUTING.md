@@ -18,10 +18,13 @@ Run these checks before opening a pull request:
 
 ```bash
 python -m pytest
+python -m repo_radar.evaluation
 python -m ruff check .
 python -m ruff format --check .
 node --check repo_radar/static/app.js
 ```
+
+Changes to ranking behavior should report the before and after evaluation output and, when the change is intended, refresh the baseline with `python -m repo_radar.evaluation --write-baseline`. See [evaluation/README.md](evaluation/README.md).
 
 Optional local coverage is available with:
 
