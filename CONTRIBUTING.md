@@ -18,10 +18,22 @@ Run these checks before opening a pull request:
 
 ```bash
 python -m pytest
+python -m repo_radar.evaluation
 python -m ruff check .
 python -m ruff format --check .
 node --check repo_radar/static/app.js
 ```
+
+Changes to ranking behavior should report the before and after evaluation output and, when the change is intended, refresh the baseline with `python -m repo_radar.evaluation --write-baseline`. See [evaluation/README.md](evaluation/README.md).
+
+A ranking change should also be checked against the held-out-star evaluation, which measures the same ranker against real GitHub metadata instead of hand-authored labels:
+
+```bash
+python -m repo_radar.heldout_evaluation
+python -m repo_radar.heldout_evaluation --write-baseline
+```
+
+This takes a few minutes and reads a frozen snapshot; it contacts no network service. Regenerating that snapshot (`python -m repo_radar.heldout_snapshot`) changes the experiment's inputs and is a deliberate act — re-record the held-out baseline in the same change. Read both evaluations together: they answer different questions and neither settles a ranking decision alone.
 
 Optional local coverage is available with:
 
