@@ -12,27 +12,28 @@
       "candidate_count": 46,
       "relevant_candidate_count": 11,
       "metrics": {
-        "ndcg_at_10": 0.9494,
-        "precision_at_10": 1.0,
-        "recall_at_10": 0.9091,
+        "ndcg_at_10": 0.8773,
+        "precision_at_10": 0.9,
+        "recall_at_10": 0.8182,
         "mrr": 1.0
       },
       "diagnostics": {
-        "mean_pairwise_similarity_top_k": 0.6019,
-        "maximum_pairwise_similarity_top_k": 1.0,
+        "mean_pairwise_similarity_top_k": 0.4773,
+        "maximum_pairwise_similarity_top_k": 0.86,
         "popularity": {
           "candidate_median_stars": 3550.0,
-          "top_k_median_stars": 1750.0,
-          "top_k_median_star_ratio": 0.493,
+          "top_k_median_stars": 2900.0,
+          "top_k_median_star_ratio": 0.8169,
           "relevant_low_star_in_top_k": [
             "taskforge/taskforge",
             "shellsmith/shellsmith",
-            "dupetask/taskforge-lite",
             "pyflowops/pyflow",
             "dormant/autopilot-cli",
             "chronotask/chronotask"
           ],
-          "irrelevant_high_star_in_top_k": []
+          "irrelevant_high_star_in_top_k": [
+            "gopher-ops/kubetidy"
+          ]
         }
       },
       "ranking": [
@@ -70,14 +71,6 @@
         },
         {
           "rank": 5,
-          "repository": "dupetask/taskforge-lite",
-          "score": 0.544819,
-          "label": 3,
-          "stars": 430,
-          "explanation": "strong match for Python, cli, automation"
-        },
-        {
-          "rank": 6,
           "repository": "sechawk/depaudit",
           "score": 0.499573,
           "label": 2,
@@ -85,7 +78,7 @@
           "explanation": "strong match for Python, cli, developer-tools"
         },
         {
-          "rank": 7,
+          "rank": 6,
           "repository": "pyflowops/pyflow",
           "score": 0.488367,
           "label": 3,
@@ -93,7 +86,7 @@
           "explanation": "strong match for Python, automation, developer-tools"
         },
         {
-          "rank": 8,
+          "rank": 7,
           "repository": "dormant/autopilot-cli",
           "score": 0.474123,
           "label": 2,
@@ -101,7 +94,7 @@
           "explanation": "strong match for Python, cli, automation"
         },
         {
-          "rank": 9,
+          "rank": 8,
           "repository": "chronotask/chronotask",
           "score": 0.451324,
           "label": 2,
@@ -109,12 +102,20 @@
           "explanation": "strong match for Python, cli, automation"
         },
         {
-          "rank": 10,
+          "rank": 9,
           "repository": "oldtools/taskrunner-classic",
           "score": 0.444646,
           "label": 2,
           "stars": 5600,
           "explanation": "strong match for Python, cli, automation"
+        },
+        {
+          "rank": 10,
+          "repository": "gopher-ops/kubetidy",
+          "score": 0.410454,
+          "label": 1,
+          "stars": 6200,
+          "explanation": "strong match for cli, devops, operations"
         }
       ]
     },
@@ -125,21 +126,21 @@
       "candidate_count": 45,
       "relevant_candidate_count": 10,
       "metrics": {
-        "ndcg_at_10": 0.8385,
+        "ndcg_at_10": 0.7757,
         "precision_at_10": 0.8,
         "recall_at_10": 0.8,
         "mrr": 0.5
       },
       "diagnostics": {
-        "mean_pairwise_similarity_top_k": 0.2343,
-        "maximum_pairwise_similarity_top_k": 1.0,
+        "mean_pairwise_similarity_top_k": 0.2041,
+        "maximum_pairwise_similarity_top_k": 0.86,
         "popularity": {
           "candidate_median_stars": 3300.0,
           "top_k_median_stars": 6500.0,
           "top_k_median_star_ratio": 1.9697,
           "relevant_low_star_in_top_k": [
-            "gopher-ops/kubetidy-plus",
-            "systemsmith/tracewatch"
+            "systemsmith/tracewatch",
+            "runbook-io/runbook"
           ],
           "irrelevant_high_star_in_top_k": [
             "docsmith/mdbookery",
@@ -174,14 +175,6 @@
         },
         {
           "rank": 4,
-          "repository": "gopher-ops/kubetidy-plus",
-          "score": 0.444182,
-          "label": 3,
-          "stars": 540,
-          "explanation": "strong match for Go, cli, go"
-        },
-        {
-          "rank": 5,
           "repository": "stale-infra/clusterctl-old",
           "score": 0.40448,
           "label": 2,
@@ -189,7 +182,7 @@
           "explanation": "strong match for Go, cli, go"
         },
         {
-          "rank": 6,
+          "rank": 5,
           "repository": "systemsmith/tracewatch",
           "score": 0.393239,
           "label": 3,
@@ -197,7 +190,7 @@
           "explanation": "strong match for Rust, observability, performance"
         },
         {
-          "rank": 7,
+          "rank": 6,
           "repository": "docsmith/mdbookery",
           "score": 0.375743,
           "label": 1,
@@ -205,7 +198,7 @@
           "explanation": "strong match for Rust, cli, rust"
         },
         {
-          "rank": 8,
+          "rank": 7,
           "repository": "netcore/quicproxy",
           "score": 0.347225,
           "label": 3,
@@ -213,7 +206,7 @@
           "explanation": "strong match for Rust, performance, rust"
         },
         {
-          "rank": 9,
+          "rank": 8,
           "repository": "dbforge/rowstore",
           "score": 0.307996,
           "label": 2,
@@ -221,12 +214,20 @@
           "explanation": "strong match for Rust, rust"
         },
         {
-          "rank": 10,
+          "rank": 9,
           "repository": "clikit-dev/clikit",
           "score": 0.290616,
           "label": 1,
           "stars": 15200,
           "explanation": "strong match for cli, developer-tools"
+        },
+        {
+          "rank": 10,
+          "repository": "runbook-io/runbook",
+          "score": 0.245553,
+          "label": 2,
+          "stars": 890,
+          "explanation": "strong match for cli, devops"
         }
       ]
     },

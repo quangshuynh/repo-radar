@@ -114,7 +114,13 @@ Metric changes of one or two hundredths on a 48-repository corpus are noise. Tre
 
 `baseline.json` records the current ranking behavior: metrics, diagnostics, and the full top-ten ordering with scores and labels for each scenario. The orderings are the useful part — when a metric shifts, the diff shows which repositories changed places.
 
-The baseline was captured after the determinism fixes in `repo_radar/ranking.py` and before any weight tuning. It exists to answer "how does the current system behave", not "how high can this number go". Weights were not adjusted to improve it.
+The baseline was captured after the determinism fixes and the near-duplicate suppression rule in `repo_radar/ranking.py`, and before any weight tuning. It exists to answer "how does the current system behave", not "how high can this number go". Weights were not adjusted to improve it.
+
+### NDCG cannot see redundancy
+
+Worth knowing when reading a duplicate-suppression change: NDCG, precision, and recall all score each result against its own standalone label. None of them can express that the second of two near-identical repositories adds little on top of the first — a duplicate labelled `3` contributes a full gain at its rank whether or not its twin already appeared above it.
+
+So correctly demoting an independently relevant duplicate *lowers* NDCG and precision by construction. That is a limitation of the metric, not evidence the ranking got worse. Read the redundancy diagnostic alongside them: a change that lowers NDCG a little while substantially lowering mean and maximum pairwise similarity has traded per-item relevance for non-redundancy, which is exactly the tradeoff the diagnostics were separated out to expose.
 
 ## Limitations
 

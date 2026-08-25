@@ -13,6 +13,21 @@ TOPIC_MATCH_LIMIT = 4
 KEYWORD_MATCH_LIMIT = 5
 NOVELTY_WEIGHT = 0.2
 
+# candidate_similarity is 0.7 * topic jaccard + 0.3 * shared language, so reaching this
+# threshold requires the same language plus a topic jaccard of at least six sevenths. For
+# repositories carrying the usual three to five topics the only reachable similarity at or
+# above it is 1.0: an identical topic set in the same language, which leaves the ranker no
+# metadata to tell the two candidates apart. Sharing four of five topics scores 0.86 and
+# deliberately stays below the threshold, so a current tool and its stale predecessor keep
+# the soft penalty. Two repositories in different languages cannot exceed 0.7 and are never
+# treated as duplicates.
+DUPLICATE_SIMILARITY_THRESHOLD = 0.9
+
+# At maximal similarity a duplicate retains none of its raw relevance, because raw scores are
+# capped at 1.0. That guarantees an effective duplicate sorts behind every candidate holding a
+# positive adjusted score instead of merely losing a fifth of its own.
+DUPLICATE_NOVELTY_WEIGHT = 1.0
+
 
 def _parse_date(value: str | None) -> datetime | None:
     """
@@ -67,6 +82,16 @@ def candidate_similarity(left: Repository, right: Repository) -> float:
     return 0.7 * topic_score + 0.3 * language_score
 
 
+def _redundancy_penalty(similarity: float) -> float:
+    """
+    convert a similarity into a penalty, suppressing effective duplicates far more strongly
+    :param similarity: similarity against the most similar selected recommendation
+    :returns: penalty to subtract from the raw score
+    """
+    weight = DUPLICATE_NOVELTY_WEIGHT if similarity >= DUPLICATE_SIMILARITY_THRESHOLD else NOVELTY_WEIGHT
+    return weight * similarity
+
+
 def _novelty_penalty(repository: Repository, selected: list[Recommendation]) -> float:
     """
     calculate the redundancy penalty against already selected recommendations
@@ -75,7 +100,7 @@ def _novelty_penalty(repository: Repository, selected: list[Recommendation]) -> 
     :returns: novelty penalty to subtract from the raw score
     """
     similarities = (candidate_similarity(repository, chosen.repository) for chosen in selected)
-    return NOVELTY_WEIGHT * max(similarities, default=0.0)
+    return _redundancy_penalty(max(similarities, default=0.0))
 
 
 def score_repository(

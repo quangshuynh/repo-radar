@@ -11,3 +11,7 @@ htmlcov/
 *.log
 data/*
 !data/.gitkeep
+
+
+# Local AI working context
+CONTEXT.md
