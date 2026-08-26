@@ -204,3 +204,19 @@ class Recommendation:
     repository: Repository
     score: float
     explanation: str
+
+
+@dataclass(frozen=True, slots=True)
+class SearchQuery:
+    """parsed search intent separating a primary language from the topical terms"""
+
+    language: str
+    terms: tuple[str, ...] = ()
+    explicit_language: bool = False
+
+    def text(self) -> str:
+        """
+        rebuild the topical part of the search query
+        :returns: remaining search terms as GitHub search text
+        """
+        return " ".join(self.terms)

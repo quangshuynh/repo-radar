@@ -17,6 +17,7 @@ from .github_client import GitHubClient, GitHubError
 from .gitprofilelens import GitProfileLensError, import_profile
 from .models import Recommendation, Repository, SeedPreferences
 from .profile import INTERESTED_REPOSITORY_WEIGHT, build_profile, extract_keywords
+from .search import parse_search_query
 from .storage import Storage
 
 STATIC_DIRECTORY = Path(__file__).parent / "static"
@@ -449,7 +450,7 @@ def create_app() -> FastAPI:
     @application.get("/api/recommendations")
     def get_recommendations(
         limit: int = Query(default=10, ge=1, le=50),
-        language: str | None = None,
+        search: str = Query(default=""),
         min_stars: int = Query(default=0, ge=0),
         max_stars: int | None = Query(default=None, ge=0),
         hidden_gems: bool = False,
@@ -457,12 +458,16 @@ def create_app() -> FastAPI:
         """
         discover and return filtered ranked recommendations
         :param limit: maximum results to return
-        :param language: optional primary language filter
+        :param search: search query naming a language and topical terms, defaulting to Python
         :param min_stars: minimum repository star count
         :param max_stars: optional maximum repository star count
         :param hidden_gems: whether to limit results to smaller repositories
         :returns: recommendation results and empty state
         """
+        # every search resolves to exactly one primary language, explicitly named or
+        # Python by default, and that language constrains candidate generation. The
+        # profile influences ranking afterwards but never selects the language.
+        parsed_search = parse_search_query(search)
         storage = _storage()
         starred = storage.load_repositories()
         imported = storage.load_imported_profile()
@@ -474,7 +479,7 @@ def create_app() -> FastAPI:
             client = GitHubClient()
             owner = client.get_authenticated_user()
             recommendations = generate_recommendations(
-                client, profile, starred, owner, storage.load_feedback(), 50, imported
+                client, profile, starred, owner, storage.load_feedback(), 50, imported, parsed_search
             )
         except (GitHubError, RuntimeError, ValueError) as error:
             raise HTTPException(status_code=502, detail=_safe_error(error)) from error
@@ -482,8 +487,7 @@ def create_app() -> FastAPI:
         filtered = [
             recommendation
             for recommendation in recommendations
-            if (not language or recommendation.repository.language == language)
-            and recommendation.repository.stars >= min_stars
+            if recommendation.repository.stars >= min_stars
             and (maximum is None or recommendation.repository.stars <= maximum)
         ][:limit]
         message = None if filtered else "No eligible recommendations found"

@@ -300,6 +300,107 @@ def test_web_sync_removes_externally_starred_saved_repository(tmp_path, monkeypa
     assert storage.load_feedback() == {"owner/keep": "interested", "owner/tool": "starred"}
 
 
+def test_recommendation_search_honors_an_explicit_non_python_language(tmp_path, monkeypatch) -> None:
+    """
+    a JavaScript search returns JavaScript repositories despite an all Python profile
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+    pool = [
+        Repository("py/runner", "python task runner", "Python", ["cli"], 900, owner="py"),
+        Repository("js/jest", "javascript testing framework", "JavaScript", ["testing"], 800, owner="js"),
+        Repository("decoy/js-helpers", "javascript helpers in python", "Python", [], 950, owner="decoy"),
+    ]
+    Storage(tmp_path).save_repositories([Repository("py/runner", language="Python", topics=["cli"], stars=900)])
+    queries: list[str] = []
+
+    class FakeGitHubClient:
+        """mock GitHub client honoring the language qualifier"""
+
+        def get_authenticated_user(self) -> str:
+            """
+            return the mocked authenticated user
+            :returns: authenticated user login
+            """
+            return "me"
+
+        def search_repositories(self, query: str, limit: int) -> list[Repository]:
+            """
+            return pool repositories matching the requested language qualifier
+            :param query: generated search query
+            :param limit: requested result limit
+            :returns: fake search results
+            """
+            queries.append(query)
+            requested = next(
+                (part.split(":", maxsplit=1)[1].strip('"').casefold() for part in query.split() if "language:" in part),
+                "",
+            )
+            return [item for item in pool if not requested or (item.language or "").casefold() == requested]
+
+    monkeypatch.setattr("repo_radar.web.GitHubClient", FakeGitHubClient)
+    client = TestClient(app)
+    javascript = client.get("/api/recommendations", params={"search": "javascript testing"}).json()
+    default = client.get("/api/recommendations", params={"search": "task runner"}).json()
+    names = [item["full_name"] for item in javascript["recommendations"]]
+    assert names == ["js/jest"]
+    assert {item["language"] for item in javascript["recommendations"]} == {"JavaScript"}
+    assert any("language:JavaScript" in query for query in queries)
+    assert {item["language"] for item in default["recommendations"]} == {"Python"}
+
+
+def test_recommendation_search_defaults_to_python_for_every_language_free_query(tmp_path, monkeypatch) -> None:
+    """
+    an omitted, empty, or purely topical search constrains candidates to Python
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+    pool = [
+        Repository("py/runner", "python task runner", "Python", ["cli"], 900, owner="py"),
+        Repository("rs/ripgrep", "rust cli search", "Rust", ["cli"], 800, owner="rs"),
+        Repository("js/jest", "javascript testing framework", "JavaScript", ["testing"], 700, owner="js"),
+    ]
+    # a Rust dominated profile must not be able to select the language
+    Storage(tmp_path).save_repositories([Repository("rs/ripgrep", language="Rust", topics=["cli"], stars=800)])
+    queries: list[str] = []
+
+    class FakeGitHubClient:
+        """mock GitHub client honoring the language qualifier"""
+
+        def get_authenticated_user(self) -> str:
+            """
+            return the mocked authenticated user
+            :returns: authenticated user login
+            """
+            return "me"
+
+        def search_repositories(self, query: str, limit: int) -> list[Repository]:
+            """
+            return pool repositories matching the requested language qualifier
+            :param query: generated search query
+            :param limit: requested result limit
+            :returns: fake search results
+            """
+            queries.append(query)
+            requested = next(
+                (part.split(":", maxsplit=1)[1].strip('"').casefold() for part in query.split() if "language:" in part),
+                "",
+            )
+            return [item for item in pool if not requested or (item.language or "").casefold() == requested]
+
+    monkeypatch.setattr("repo_radar.web.GitHubClient", FakeGitHubClient)
+    client = TestClient(app)
+    for parameters in ({}, {"search": ""}, {"search": "   "}, {"search": "task runner"}):
+        results = client.get("/api/recommendations", params=parameters).json()["recommendations"]
+        assert [item["full_name"] for item in results] == ["py/runner"], parameters
+    assert queries
+    assert all("language:Python" in query for query in queries)
+
+
 def test_starred_saved_influence_and_feedback_history_apis(tmp_path, monkeypatch) -> None:
     """
     library and feedback APIs expose local state and support undo
