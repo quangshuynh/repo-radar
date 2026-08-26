@@ -604,7 +604,7 @@ async function loadRecommendations() {
   setRecommendationLoading(true);
   const parameters = new URLSearchParams({
     limit: document.querySelector("#filter-limit").value,
-    language: document.querySelector("#filter-language").value,
+    search: document.querySelector("#filter-search").value,
     min_stars: document.querySelector("#filter-min").value,
     hidden_gems: document.querySelector("#filter-gems").checked,
   });

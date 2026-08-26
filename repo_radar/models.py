@@ -217,8 +217,7 @@ def _issue_repository(value: dict[str, Any]) -> str:
         parts = api_url.rstrip("/").split("/")
         if len(parts) >= 2:
             return f"{parts[-2]}/{parts[-1]}"
-    # issue search results carry repository_url; the html_url fallback keeps partial
-    # payloads usable instead of discarding an otherwise complete issue
+
     html_url = str(value.get("html_url") or "")
     parts = html_url.split("/")
     if len(parts) >= 5 and parts[2].endswith("github.com"):
@@ -299,25 +298,12 @@ class Issue:
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> Issue:
-        """
-        create an issue from persisted data
-        :param value: persisted issue dictionary
-        :returns: issue instance
-        """
         return cls(**value)
 
     def to_dict(self) -> dict[str, Any]:
-        """
-        convert the issue to JSON compatible data
-        :returns: issue dictionary
-        """
         return asdict(self)
 
     def is_identifiable(self) -> bool:
-        """
-        determine whether the issue carries the identity the pipeline requires
-        :returns: whether the repository, number, and title are usable
-        """
         owner, _, name = self.repository.partition("/")
         return bool(owner and name and self.number > 0 and self.title)
 
@@ -332,3 +318,19 @@ class IssueRecommendation:
     reasons: list[str] = field(default_factory=list)
     scope_signal: str = "Unclear"
     scope_evidence: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True, slots=True)
+class SearchQuery:
+    """parsed search intent separating a primary language from the topical terms"""
+
+    language: str
+    terms: tuple[str, ...] = ()
+    explicit_language: bool = False
+
+    def text(self) -> str:
+        """
+        rebuild the topical part of the search query
+        :returns: remaining search terms as GitHub search text
+        """
+        return " ".join(self.terms)

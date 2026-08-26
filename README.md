@@ -107,6 +107,26 @@ Saved cards show their preference weight and signal count. Repositories with mor
 6. Review saved repositories and the synchronized starred library
 7. Open Feedback history to undo a previous classification
 
+### Search
+
+The Discover panel's **Search** box selects the language before ranking runs. Every search resolves to exactly one language:
+
+1. Repo Radar looks for a programming language named in the query
+2. If none is named — including an empty box — the language is Python
+3. That language becomes a GitHub `language:` constraint, so results are repositories whose **top** language matches
+4. The remaining words search topically
+5. Your profile ranks the eligible candidates; it never selects the language
+
+| Search | Effect |
+| --- | --- |
+| *(empty)* | Python repositories |
+| `automation` | Python repositories about automation |
+| `javascript` | JavaScript repositories |
+| `typescript developer tools` | TypeScript repositories about developer tools |
+| `go api` | Go repositories about APIs |
+
+A language name is recognized anywhere in the query, except for short abbreviations and names that are also everyday words (`go`, `swift`, `shell`, `c`, `r`, `js`), which only count as a language when they lead the query. A repository never qualifies because a language is mentioned in its name, description, or topics.
+
 Sync reconciles the local Saved list with GitHub. If you star a saved repository outside Repo Radar, the next sync removes it from Saved and records it as starred locally.
 
 Clearing blocked or dismissed feedback makes that repository eligible for discovery again. Clearing interested feedback also removes the repository from Saved. Clearing a starred feedback record does not unstar it on GitHub or remove it from the synchronized starred cache.
@@ -138,7 +158,7 @@ python -m repo_radar web
 
 ## How recommendations work
 
-Repo Radar builds targeted searches from the strongest profile languages and topics. It deduplicates the results, applies ownership and feedback exclusions, then ranks eligible repositories using:
+Web searches build targeted queries within the selected language, combining the topical terms with your strongest profile topics. The `recommend` command instead builds them from the strongest profile languages and topics. Either way Repo Radar deduplicates the results, applies ownership and feedback exclusions, then ranks eligible repositories using:
 
 - Preference relevance
 - Repository activity
