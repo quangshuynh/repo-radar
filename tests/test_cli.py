@@ -202,13 +202,13 @@ class ContributionClient:
 
 def test_contribute_requires_local_repository_evidence(tmp_path, capsys) -> None:
     """
-    an empty saved and starred state prints guidance instead of searching
+    an empty saved and starred state prints scope guidance instead of searching
     :param tmp_path: pytest temporary directory
     :param capsys: pytest output capture fixture
     :returns: nothing
     """
-    assert run_contribute(Storage(tmp_path), 10) == 0
-    assert "No relevant repositories are available yet" in capsys.readouterr().out
+    assert run_contribute(Storage(tmp_path), 10, scope="saved_starred") == 0
+    assert "No saved or starred repositories are available yet" in capsys.readouterr().out
 
 
 def test_contribute_ranks_and_explains_issues_from_followed_repositories(tmp_path, monkeypatch, capsys) -> None:
@@ -230,7 +230,7 @@ def test_contribute_ranks_and_explains_issues_from_followed_repositories(tmp_pat
     client = ContributionClient()
     monkeypatch.setattr("repo_radar.cli.GitHubClient", lambda: client)
 
-    assert run_contribute(storage, 5) == 0
+    assert run_contribute(storage, 5, scope="saved_starred") == 0
     output = capsys.readouterr().out
     assert client.queries
     assert "blocked/repo" not in client.queries[0]

@@ -220,6 +220,12 @@ function recommendationCard(repository) {
   return card;
 }
 
+const CONTRIBUTION_SOURCES = {
+  saved: "from your saved list",
+  starred: "from your starred library",
+  new: "new to you",
+};
+
 /**
  * creates one contribution opportunity card
  * @param {object} contribution contribution response item
@@ -252,7 +258,8 @@ function contributionCard(contribution) {
   issueTitle.textContent = contribution.title;
   meta.className = "meta";
   const assignment = contribution.assignee_count ? `assigned to ${contribution.assignee_count}` : "unassigned";
-  meta.textContent = `${contribution.language || "Unknown language"} | ${assignment} | ${contribution.comments} comments | from your ${contribution.source} list`;
+  const origin = CONTRIBUTION_SOURCES[contribution.source] || contribution.source;
+  meta.textContent = `${contribution.language || "Unknown language"} | ${assignment} | ${contribution.comments} comments | ${origin}`;
   labels.className = "topics";
   for (const value of contribution.labels) {
     const label = document.createElement("span");
@@ -287,9 +294,11 @@ async function loadContributions() {
   const button = document.querySelector("#refresh-contributions");
   const container = document.querySelector("#contributions");
   const warning = document.querySelector("#contribution-warning");
+  const selectedScope = document.querySelector('input[name="contribution-scope"]:checked');
   const parameters = new URLSearchParams({
     limit: document.querySelector("#contribution-limit").value,
     unassigned_only: document.querySelector("#contribution-unassigned").checked,
+    scope: selectedScope ? selectedScope.value : "discover",
   });
   button.disabled = true;
   button.textContent = "Reading open issues...";
@@ -305,7 +314,11 @@ async function loadContributions() {
       heading.className = "empty-title";
       heading.textContent = "No open issues stood out.";
       detail.className = "empty";
-      detail.textContent = data.message || "Save or star a few more repositories and try again.";
+      detail.textContent =
+        data.message ||
+        (data.scope === "saved_starred"
+          ? "Try the Discover scope, or save and star a few more repositories."
+          : "Add a few more interests to your profile and try again.");
       empty.append(heading, detail);
       container.replaceChildren(empty);
     }

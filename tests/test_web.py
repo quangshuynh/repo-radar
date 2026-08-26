@@ -337,7 +337,7 @@ def test_starred_saved_influence_and_feedback_history_apis(tmp_path, monkeypatch
 
 def test_contributions_api_ranks_issues_from_local_repositories(tmp_path, monkeypatch) -> None:
     """
-    the contribution API searches saved and starred repositories and explains each result
+    the saved_starred scope searches saved and starred repositories and explains each result
     :param tmp_path: pytest temporary directory
     :param monkeypatch: pytest monkeypatch fixture
     :returns: nothing
@@ -388,9 +388,10 @@ def test_contributions_api_ranks_issues_from_local_repositories(tmp_path, monkey
             ]
 
     monkeypatch.setattr("repo_radar.web.GitHubClient", FakeGitHubClient)
-    payload = TestClient(app).get("/api/contributions?limit=5").json()
+    payload = TestClient(app).get("/api/contributions?limit=5&scope=saved_starred").json()
     contributions = payload["contributions"]
 
+    assert payload["scope"] == "saved_starred"
     assert len(queries) == 1
     assert queries[0].startswith("is:issue is:open archived:false (")
     assert payload["warning"] is None
@@ -406,7 +407,7 @@ def test_contributions_api_ranks_issues_from_local_repositories(tmp_path, monkey
 
 def test_contributions_api_needs_local_repository_evidence(tmp_path, monkeypatch) -> None:
     """
-    an empty saved and starred state returns guidance without contacting GitHub
+    an empty saved and starred state returns scope guidance without contacting GitHub
     :param tmp_path: pytest temporary directory
     :param monkeypatch: pytest monkeypatch fixture
     :returns: nothing
@@ -424,7 +425,7 @@ def test_contributions_api_needs_local_repository_evidence(tmp_path, monkeypatch
             raise AssertionError("Contribution discovery must not contact GitHub without local repositories")
 
     monkeypatch.setattr("repo_radar.web.GitHubClient", ForbiddenGitHubClient)
-    payload = TestClient(app).get("/api/contributions").json()
+    payload = TestClient(app).get("/api/contributions?scope=saved_starred").json()
     assert payload["contributions"] == []
     assert "sync your GitHub stars" in payload["message"]
 
@@ -466,3 +467,118 @@ def test_contributions_api_reports_rate_limits_without_the_token(tmp_path, monke
     assert payload["contributions"] == []
     assert "secret-test-token" not in response.text
     assert "[redacted]" in payload["warning"]
+
+
+def test_contributions_api_defaults_to_discovering_unknown_repositories(tmp_path, monkeypatch) -> None:
+    """
+    the default scope searches GitHub-wide and reports newly discovered repositories
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+    storage = Storage(tmp_path)
+    storage.save_repositories(
+        [Repository("acme/service", "backend api service", "Python", ["backend", "api"], 900, owner="acme")]
+    )
+    queries = []
+    lookups = []
+
+    class DiscoveringGitHubClient:
+        """mock GitHub client for global contribution discovery"""
+
+        def get_authenticated_user(self) -> str:
+            """
+            return the mocked authenticated login
+            :returns: authenticated login
+            """
+            return "example"
+
+        def search_issues(self, query: str, limit: int = 50) -> list[Issue]:
+            """
+            return one mocked issue from a repository the user has never seen
+            :param query: generated issue search query
+            :param limit: requested result limit
+            :returns: mocked issue candidates
+            """
+            queries.append(query)
+            return [
+                Issue(
+                    repository="stranger/project",
+                    number=11,
+                    title="Improve backend api retry handling",
+                    url="https://github.com/stranger/project/issues/11",
+                    labels=["help wanted"],
+                    updated_at="2026-01-01T00:00:00Z",
+                )
+            ]
+
+        def get_repository(self, full_name: str) -> Repository:
+            """
+            return mocked hydrated metadata for one discovered repository
+            :param full_name: repository full name
+            :returns: repository metadata
+            """
+            lookups.append(full_name)
+            return Repository(full_name, "backend api service", "Python", ["backend", "api"], 500, owner="stranger")
+
+    monkeypatch.setattr("repo_radar.web.GitHubClient", DiscoveringGitHubClient)
+    payload = TestClient(app).get("/api/contributions?limit=5").json()
+    contributions = payload["contributions"]
+
+    assert payload["scope"] == "discover"
+    assert queries and all("repo:" not in query for query in queries)
+    assert lookups == ["stranger/project"]
+    assert [item["repository"] for item in contributions] == ["stranger/project"]
+    assert contributions[0]["source"] == "new"
+
+
+def test_contributions_api_rejects_an_unsupported_scope(tmp_path, monkeypatch) -> None:
+    """
+    an unknown scope is refused with guidance instead of silently defaulting
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+
+    class ForbiddenGitHubClient:
+        """GitHub client that fails if an invalid scope reaches the pipeline"""
+
+        def __init__(self) -> None:
+            """
+            reject unexpected GitHub client construction
+            :returns: nothing
+            """
+            raise AssertionError("An invalid scope must never reach GitHub")
+
+    monkeypatch.setattr("repo_radar.web.GitHubClient", ForbiddenGitHubClient)
+    response = TestClient(app).get("/api/contributions?scope=everything")
+    assert response.status_code == 400
+    assert "discover" in response.json()["detail"]
+    assert "saved_starred" in response.json()["detail"]
+
+
+def test_contributions_api_needs_profile_signals_for_discovery(tmp_path, monkeypatch) -> None:
+    """
+    discovery without any preference signals returns guidance rather than crawling GitHub
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+
+    class ForbiddenGitHubClient:
+        """GitHub client that fails if discovery runs without preference signals"""
+
+        def __init__(self) -> None:
+            """
+            reject unexpected GitHub client construction
+            :returns: nothing
+            """
+            raise AssertionError("Discovery must not contact GitHub without preference signals")
+
+    monkeypatch.setattr("repo_radar.web.GitHubClient", ForbiddenGitHubClient)
+    payload = TestClient(app).get("/api/contributions").json()
+    assert payload["contributions"] == []
+    assert payload["message"] == "No preference signals are available yet"

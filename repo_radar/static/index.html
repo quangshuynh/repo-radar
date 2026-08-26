@@ -24,10 +24,13 @@
       <div id="recommendations" class="cards"><div class="recommendation-empty"><p class="empty-title">Your next favorite project might be nearby.</p><p class="empty">Select “Find something good” and Repo Radar will search for repositories shaped by your profile.</p></div></div>
     </section>
     <section id="contribute" class="panel">
-      <div class="section-heading"><div><p class="eyebrow">Give something back</p><h2>Contribution opportunities</h2><p class="section-intro">Open issues from repositories you already saved or starred, ranked by how well they match your profile.</p></div><button id="refresh-contributions">Find an issue to work on</button></div>
-      <div class="filters"><label>Results<input id="contribution-limit" type="number" min="1" max="50" value="10"></label><label class="checkbox"><input id="contribution-unassigned" type="checkbox"> Unassigned only</label></div>
+      <div class="section-heading"><div><p class="eyebrow">Give something back</p><h2>Contribution opportunities</h2><p class="section-intro">Open issues across GitHub ranked by how well they match your profile, including repositories you have not discovered yet.</p></div><button id="refresh-contributions">Find an issue to work on</button></div>
+      <div class="filters">
+        <fieldset class="scope-choice"><legend>Scope</legend><label class="checkbox"><input type="radio" name="contribution-scope" value="discover" checked> Discover best opportunities</label><label class="checkbox"><input type="radio" name="contribution-scope" value="saved_starred"> Saved &amp; starred only</label></fieldset>
+        <label>Results<input id="contribution-limit" type="number" min="1" max="50" value="10"></label><label class="checkbox"><input id="contribution-unassigned" type="checkbox"> Unassigned only</label>
+      </div>
       <p id="contribution-warning" class="inline-message" role="status" aria-live="polite"></p>
-      <div id="contributions" class="cards"><div class="recommendation-empty"><p class="empty-title">There is probably an issue here with your name on it.</p><p class="empty">Select “Find an issue to work on” and Repo Radar will look through the repositories you already follow.</p></div></div>
+      <div id="contributions" class="cards"><div class="recommendation-empty"><p class="empty-title">There is probably an issue here with your name on it.</p><p class="empty">Select “Find an issue to work on” and Repo Radar will search GitHub for open issues shaped by your profile.</p></div></div>
     </section>
     <section id="saved" class="panel">
       <div class="section-heading"><div><p class="eyebrow">Come back anytime</p><h2>Saved for later</h2><p class="section-intro">Repositories you marked as interested also help shape what Repo Radar recommends next.</p></div><div class="section-actions"><button id="star-all-saved">Star all on GitHub</button><button id="clear-saved" class="danger">Remove all saved</button><button id="reload-saved" class="secondary">Refresh saved</button></div></div>

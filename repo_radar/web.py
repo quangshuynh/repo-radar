@@ -11,7 +11,13 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from .contribution import generate_contribution_recommendations, source_labels
+from .contribution import (
+    CONTRIBUTION_SCOPES,
+    DEFAULT_SCOPE,
+    SCOPE_SAVED_STARRED,
+    generate_contribution_recommendations,
+    source_labels,
+)
 from .discovery import generate_recommendations
 from .feedback import reconcile_starred_repositories, record_feedback
 from .github_client import GitHubClient, GitHubError
@@ -140,7 +146,7 @@ def _contribution_data(recommendation: IssueRecommendation, sources: dict[str, s
         "comments": issue.comments,
         "updated_at": issue.updated_at,
         "language": recommendation.repository.language,
-        "source": sources.get(issue.repository.lower(), "relevant"),
+        "source": sources.get(issue.repository.lower(), "new"),
         "score": round(recommendation.score, 4),
         "reasons": recommendation.reasons,
         "scope_signal": recommendation.scope_signal,
@@ -528,29 +534,57 @@ def create_app() -> FastAPI:
     def get_contributions(
         limit: int = Query(default=10, ge=1, le=50),
         unassigned_only: bool = False,
+        scope: str = Query(default=DEFAULT_SCOPE),
     ) -> dict[str, object]:
         """
-        rank open issues in repositories the user already cares about
+        rank open issues as contribution opportunities
+
+        An omitted scope discovers opportunities across GitHub, including repositories the
+        user has never saved or starred. `saved_starred` restricts candidates to the
+        repositories the user already follows.
         :param limit: maximum contribution opportunities to return
         :param unassigned_only: whether to drop issues that already have an assignee
+        :param scope: candidate sourcing scope, discover or saved_starred
         :returns: contribution recommendations, empty state, and degradation warning
         """
+        if scope not in CONTRIBUTION_SCOPES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported scope {scope}. Expected one of {', '.join(CONTRIBUTION_SCOPES)}",
+            )
         storage = _storage()
         starred = storage.load_repositories()
         interested = storage.load_interested_repositories()
         imported = storage.load_imported_profile()
-        if not starred and not interested:
+        if scope == SCOPE_SAVED_STARRED and not starred and not interested:
             return {
                 "contributions": [],
                 "message": "Save a repository or sync your GitHub stars to find contribution opportunities",
                 "warning": None,
+                "scope": scope,
             }
         profile = build_profile(starred, storage.load_seed_preferences(), imported, interested)
+        if not profile.languages and not profile.topics and not profile.keywords:
+            return {
+                "contributions": [],
+                "message": "No preference signals are available yet",
+                "warning": None,
+                "scope": scope,
+            }
         try:
             client = GitHubClient()
             owner = client.get_authenticated_user()
             recommendations, warning = generate_contribution_recommendations(
-                client, profile, interested, starred, owner, storage.load_feedback(), limit, imported, unassigned_only
+                client,
+                profile,
+                interested,
+                starred,
+                owner,
+                storage.load_feedback(),
+                limit,
+                imported,
+                unassigned_only,
+                scope,
             )
         except (GitHubError, RuntimeError, ValueError) as error:
             raise HTTPException(status_code=502, detail=_safe_error(error)) from error
@@ -560,6 +594,7 @@ def create_app() -> FastAPI:
             "contributions": [_contribution_data(item, sources) for item in recommendations],
             "message": message,
             "warning": _redact(warning) if warning else None,
+            "scope": scope,
         }
 
     return application

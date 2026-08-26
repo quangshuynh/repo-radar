@@ -361,3 +361,119 @@ def test_malformed_starred_response_fails_safely(monkeypatch) -> None:
     else:
         raise AssertionError("Expected malformed GitHub data to fail")
     assert [request.method for request in requests] == ["GET"]
+
+
+def test_repository_lookup_normalizes_metadata_from_the_core_api(monkeypatch) -> None:
+    """
+    hydration reads the core repository endpoint and returns ranking ready metadata
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    requests = []
+    payload = {
+        "full_name": "owner/repository",
+        "owner": {"login": "owner"},
+        "description": "backend service",
+        "language": "Python",
+        "topics": ["backend", "api"],
+        "stargazers_count": 900,
+        "forks_count": 40,
+        "pushed_at": "2026-01-01T00:00:00Z",
+    }
+
+    def fake_urlopen(request, timeout):
+        """
+        return the mocked repository response
+        :param request: outgoing URL request
+        :param timeout: outgoing request timeout
+        :returns: fake API response
+        """
+        requests.append(request)
+        return FakeResponse(payload)
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    repository = GitHubClient("test-token").get_repository("owner/repository")
+    assert urlparse(requests[0].full_url).path == "/repos/owner/repository"
+    assert requests[0].method == "GET"
+    assert repository.full_name == "owner/repository"
+    assert repository.language == "Python"
+    assert repository.topics == ["backend", "api"]
+    assert repository.stars == 900
+
+
+def test_repository_lookup_rejects_a_malformed_name_without_a_request(monkeypatch) -> None:
+    """
+    an unusable repository name fails before any GitHub traffic
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    requests = []
+
+    def fake_urlopen(request, timeout):
+        """
+        record an unexpected request
+        :param request: outgoing URL request
+        :param timeout: outgoing request timeout
+        :returns: fake API response
+        """
+        requests.append(request)
+        return FakeResponse({})
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    try:
+        GitHubClient("test-token").get_repository("not-a-full-name")
+    except GitHubError as error:
+        assert "owner/name" in str(error)
+    else:
+        raise AssertionError("Expected a malformed repository name to fail")
+    assert requests == []
+
+
+def test_repository_lookup_failures_carry_the_http_status(monkeypatch) -> None:
+    """
+    hydration can tell a missing repository from a rate limit it must stop on
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+
+    def fake_urlopen(request, timeout):
+        """
+        raise a mocked missing repository failure
+        :param request: outgoing URL request
+        :param timeout: outgoing request timeout
+        :returns: no response
+        """
+        raise urllib.error.HTTPError(request.full_url, 404, "Not Found", Message(), io.BytesIO(b"missing"))
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    try:
+        GitHubClient("test-token").get_repository("gone/project")
+    except GitHubError as error:
+        assert error.status == 404
+    else:
+        raise AssertionError("Expected a missing repository to fail")
+
+
+def test_malformed_repository_response_fails_safely(monkeypatch) -> None:
+    """
+    an identity-less repository response raises rather than hydrating an empty repository
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+
+    def fake_urlopen(request, timeout):
+        """
+        return an unusable repository payload
+        :param request: outgoing URL request
+        :param timeout: outgoing request timeout
+        :returns: fake API response
+        """
+        return FakeResponse({"owner": {"login": "owner"}})
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    try:
+        GitHubClient("test-token").get_repository("owner/repository")
+    except GitHubError as error:
+        assert "Unexpected response from GitHub repository lookup" in str(error)
+    else:
+        raise AssertionError("Expected a malformed repository response to fail")

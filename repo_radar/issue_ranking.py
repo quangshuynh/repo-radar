@@ -239,6 +239,36 @@ def _scope_signal(readiness: float, issue: Issue) -> str:
     return "Focused" if readiness >= FOCUSED_SCOPE_THRESHOLD else "Unclear"
 
 
+def issue_priority(issue: Issue, profile: PreferenceProfile, now: datetime | None = None) -> float:
+    """
+    score an issue using only evidence carried by the issue itself
+
+    Global contribution discovery learns about an issue before it can afford to learn about
+    the repository owning it, because GitHub's issue search returns no repository metadata.
+    This is the selection heuristic that decides which repositories are worth one bounded
+    hydration request each. It is deliberately the production issue score with the
+    repository relevance term omitted rather than a second set of weights, so the ordering
+    it produces cannot drift away from the ordering that is finally reported.
+
+    This value is never surfaced. Only `score_issue` produces a reported score.
+    :param issue: candidate issue
+    :param profile: user preference profile
+    :param now: optional reference time for deterministic scoring
+    :returns: issue-only priority from zero to one
+    """
+    reference = now or datetime.now(timezone.utc)
+    relevance, _ = issue_relevance(issue, profile)
+    friendliness, _ = contribution_friendliness(issue)
+    fresh, _ = freshness(issue, reference)
+    readiness, _ = scope_readiness(issue)
+    return (
+        ISSUE_RELEVANCE_WEIGHT * relevance
+        + FRIENDLINESS_WEIGHT * friendliness
+        + FRESHNESS_WEIGHT * fresh
+        + READINESS_WEIGHT * readiness
+    )
+
+
 def score_issue(
     issue: Issue, repository: Repository, profile: PreferenceProfile, now: datetime | None = None
 ) -> IssueRecommendation:

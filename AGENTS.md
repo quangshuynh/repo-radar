@@ -36,9 +36,12 @@ python -m pytest
 python -m ruff check .
 python -m ruff format --check .
 node --check repo_radar/static/app.js
+python -m repo_radar.evaluation
+python -m repo_radar.heldout_evaluation
+python -m repo_radar.contribution_evaluation
 ```
 
-If evaluation infrastructure is present, also run its documented evaluation command and verify deterministic output where relevant.
+Verify deterministic output across multiple runs and that repository/issue ranking baselines remain byte-identical when unintended.
 
 ## Architecture boundaries
 
@@ -46,8 +49,10 @@ Preserve these concepts:
 - `profile` builds preference signals from supported sources.
 - `discovery` generates/searches repository candidate pools and applies exclusions.
 - `ranking` scores and orders eligible repository candidates.
-- `contribution` selects a bounded issue candidate pool from repositories the user already follows.
+- `contribution` generates bounded contribution searches, sources a bounded issue candidate
+  pool for each scope, and normalizes candidates before ranking.
 - `issue_ranking` scores and orders issue candidates and produces their explanations.
+- `contribution_evaluation` measures issue ranking offline against a frozen real-issue corpus.
 - feedback/history/exclusions remain explicit.
 - local state remains local-first.
 - evaluation fixtures/labels must not leak into production behavior.

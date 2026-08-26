@@ -59,6 +59,9 @@ Architecture boundaries to respect:
   `is:issue` is not sufficient on its own — filter defensively.
 - Malformed *shape* raises `GitHubError`; individual unusable rows are dropped so one bad
   row cannot discard a whole batch.
+- Free-text terms in issue searches that merely repeat a language qualifier (e.g. adding
+  "python" when `language:python` is already in scope) waste the term budget on redundancy;
+  drop them before query construction to preserve slots for stronger signals.
 
 ## Ranking-specific guidance
 
@@ -84,7 +87,7 @@ Issue ranking additionally requires:
 
 ## Validation
 
-Run all five before finishing:
+Run all before finishing:
 
 ```bash
 python -m pytest
@@ -92,12 +95,17 @@ python -m ruff check .
 python -m ruff format --check .
 node --check repo_radar/static/app.js
 python -m repo_radar.evaluation
+python -m repo_radar.heldout_evaluation
+python -m repo_radar.contribution_evaluation
 ```
 
 When a change is not meant to affect repository ranking, prove it: capture
 `python -m repo_radar.evaluation` output, `git stash` the change, capture it again, and diff.
 Note that `evaluation/baseline.json` stores per-scenario detail, not the headline metrics, so
 comparing top-level numbers against it proves nothing — diff the actual report output.
+
+When a change is not meant to affect contribution ranking, prove it the same way with
+`python -m repo_radar.contribution_evaluation`.
 
 ## Evaluation-specific guidance
 
