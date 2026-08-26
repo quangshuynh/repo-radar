@@ -7,11 +7,17 @@ import sys
 from collections.abc import Callable
 from datetime import datetime, timezone
 
+from .contribution import (
+    DEFAULT_SCOPE,
+    SCOPE_SAVED_STARRED,
+    generate_contribution_recommendations,
+    source_labels,
+)
 from .discovery import generate_recommendations
 from .feedback import reconcile_starred_repositories, record_feedback
 from .github_client import GitHubClient, GitHubError
 from .gitprofilelens import GitProfileLensError, import_profile
-from .models import ImportedProfile, PreferenceProfile, Recommendation, SeedPreferences
+from .models import ImportedProfile, IssueRecommendation, PreferenceProfile, Recommendation, SeedPreferences
 from .profile import build_profile
 from .storage import Storage
 
@@ -32,6 +38,15 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("web", help="start the local web interface")
     recommend = subparsers.add_parser("recommend", help="discover and rank repositories")
     recommend.add_argument("--limit", type=int, default=10, help="number of recommendations")
+    contribute = subparsers.add_parser("contribute", help="find open issues worth contributing to")
+    contribute.add_argument("--limit", type=int, default=10, help="number of contribution opportunities")
+    contribute.add_argument("--unassigned-only", action="store_true", help="skip issues that already have an assignee")
+    contribute.add_argument(
+        "--scope",
+        choices=["discover", "saved-starred"],
+        default="discover",
+        help="discover opportunities across GitHub, or only inside repositories you saved or starred",
+    )
     feedback = subparsers.add_parser("feedback", help="classify a recommendation locally")
     feedback.add_argument("repository", help="repository in owner/name form")
     feedback.add_argument("classification", help="interested, not-interested, starred, or blocked")
@@ -162,6 +177,45 @@ def print_recommendations(recommendations: list[Recommendation]) -> None:
         print(f"   {repository.url}\n")
 
 
+SOURCE_DESCRIPTIONS = {
+    "saved": "from your saved list",
+    "starred": "from your starred library",
+    "new": "new to you",
+}
+
+
+def print_contributions(
+    recommendations: list[IssueRecommendation],
+    warning: str | None = None,
+    sources: dict[str, str] | None = None,
+) -> None:
+    """
+    display ranked contribution opportunities
+    :param recommendations: contribution recommendations to display
+    :param warning: optional message explaining a partial GitHub result
+    :param sources: mapping from lowercase repository name to source label
+    :returns: nothing
+    """
+    if not recommendations:
+        print("No open contribution opportunities were found.")
+    for rank, recommendation in enumerate(recommendations, start=1):
+        issue = recommendation.issue
+        source = (sources or {}).get(issue.repository.lower(), "new")
+        print(f"{rank}. {issue.repository}#{issue.number} {issue.title}")
+        print(f"   Score: {recommendation.score:.0%}")
+        print(f"   Repository: {SOURCE_DESCRIPTIONS.get(source, source)}")
+        print(f"   Labels: {', '.join(issue.labels) if issue.labels else 'none'}")
+        print("\n   Why recommended:")
+        for reason in recommendation.reasons:
+            print(f"   - {reason}")
+        print(f"\n   Scope signal: {recommendation.scope_signal}")
+        for evidence in recommendation.scope_evidence:
+            print(f"   - {evidence}")
+        print(f"\n   {issue.url}\n")
+    if warning:
+        print(f"Partial results. GitHub issue search stopped early: {warning}")
+
+
 def run_sync(storage: Storage) -> int:
     """
     refresh the local starred repository cache
@@ -227,6 +281,45 @@ def run_recommend(storage: Storage, limit: int) -> int:
     return 0
 
 
+def run_contribute(storage: Storage, limit: int, unassigned_only: bool = False, scope: str = DEFAULT_SCOPE) -> int:
+    """
+    rank and display open contribution opportunities
+    :param storage: local storage manager
+    :param limit: maximum contribution opportunities
+    :param unassigned_only: whether to skip issues that already have an assignee
+    :param scope: candidate sourcing scope, discover or saved_starred
+    :returns: process exit code
+    """
+    starred = storage.load_repositories()
+    interested = storage.load_interested_repositories()
+    if scope == SCOPE_SAVED_STARRED and not starred and not interested:
+        print("No saved or starred repositories are available yet.")
+        print("Save a recommendation, run `python -m repo_radar sync`, or use the default discovery scope.")
+        return 0
+    imported = storage.load_imported_profile()
+    profile = build_profile(starred, storage.load_seed_preferences(), imported, interested)
+    if not profile.languages and not profile.topics and not profile.keywords:
+        print("No preference signals are available yet.")
+        print("Run `python -m repo_radar init`, import a public profile, or star some repositories and run sync.")
+        return 0
+    client = GitHubClient()
+    owner = client.get_authenticated_user()
+    recommendations, warning = generate_contribution_recommendations(
+        client,
+        profile,
+        interested,
+        starred,
+        owner,
+        storage.load_feedback(),
+        limit,
+        imported,
+        unassigned_only,
+        scope,
+    )
+    print_contributions(recommendations, warning, source_labels(interested, starred))
+    return 0
+
+
 def run_web() -> int:
     """
     start the local Repo Radar web interface
@@ -257,6 +350,8 @@ def main(arguments: list[str] | None = None) -> int:
             return run_profile(storage)
         if parsed.command == "recommend":
             return run_recommend(storage, parsed.limit)
+        if parsed.command == "contribute":
+            return run_contribute(storage, parsed.limit, parsed.unassigned_only, parsed.scope.replace("-", "_"))
         if parsed.command == "web":
             return run_web()
         record_feedback(storage, parsed.repository, parsed.classification)

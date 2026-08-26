@@ -9,7 +9,7 @@
 <body>
   <header class="topbar">
     <div class="brand"><img class="brand-logo" src="/static/images/logo.png" alt=""><span class="brand-copy"><strong>Repo Radar</strong><span>a thoughtful corner of GitHub</span></span></div>
-    <nav><a href="#discover">Discover</a><a href="#saved">Saved</a><a href="#starred">Starred</a><a href="#profile">Profile</a><a href="#feedback">Feedback</a><a href="#preferences">Preferences</a></nav>
+    <nav><a href="#discover">Discover</a><a href="#contribute">Contribute</a><a href="#saved">Saved</a><a href="#starred">Starred</a><a href="#profile">Profile</a><a href="#feedback">Feedback</a><a href="#preferences">Preferences</a></nav>
   </header>
   <main>
     <section class="welcome">
@@ -22,6 +22,15 @@
       <div class="section-heading"><div><p class="eyebrow">Picked for you</p><h2>Discover repositories</h2><p class="section-intro">A fresh batch of projects, balanced for relevance and a little serendipity.</p></div><button id="refresh">Find something good</button></div>
       <div class="filters"><label>Search<input id="filter-search" placeholder="python automation"></label><label>Minimum stars<input id="filter-min" type="number" min="0" value="0"></label><label>Maximum stars<input id="filter-max" type="number" min="0"></label><label>Results<input id="filter-limit" type="number" min="1" max="50" value="10"></label><label class="checkbox"><input id="filter-gems" type="checkbox"> Hidden gems</label></div>
       <div id="recommendations" class="cards"><div class="recommendation-empty"><p class="empty-title">Your next favorite project might be nearby.</p><p class="empty">Select “Find something good” and Repo Radar will search for repositories shaped by your profile.</p></div></div>
+    </section>
+    <section id="contribute" class="panel">
+      <div class="section-heading"><div><p class="eyebrow">Give something back</p><h2>Contribution opportunities</h2><p class="section-intro">Open issues across GitHub ranked by how well they match your profile, including repositories you have not discovered yet.</p></div><button id="refresh-contributions">Find an issue to work on</button></div>
+      <div class="filters">
+        <fieldset class="scope-choice"><legend>Scope</legend><label class="checkbox"><input type="radio" name="contribution-scope" value="discover" checked> Discover best opportunities</label><label class="checkbox"><input type="radio" name="contribution-scope" value="saved_starred"> Saved &amp; starred only</label></fieldset>
+        <label>Results<input id="contribution-limit" type="number" min="1" max="50" value="10"></label><label class="checkbox"><input id="contribution-unassigned" type="checkbox"> Unassigned only</label>
+      </div>
+      <p id="contribution-warning" class="inline-message" role="status" aria-live="polite"></p>
+      <div id="contributions" class="cards"><div class="recommendation-empty"><p class="empty-title">There is probably an issue here with your name on it.</p><p class="empty">Select “Find an issue to work on” and Repo Radar will search GitHub for open issues shaped by your profile.</p></div></div>
     </section>
     <section id="saved" class="panel">
       <div class="section-heading"><div><p class="eyebrow">Come back anytime</p><h2>Saved for later</h2><p class="section-intro">Repositories you marked as interested also help shape what Repo Radar recommends next.</p></div><div class="section-actions"><button id="star-all-saved">Star all on GitHub</button><button id="clear-saved" class="danger">Remove all saved</button><button id="reload-saved" class="secondary">Refresh saved</button></div></div>

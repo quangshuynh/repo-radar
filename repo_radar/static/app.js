@@ -220,6 +220,120 @@ function recommendationCard(repository) {
   return card;
 }
 
+const CONTRIBUTION_SOURCES = {
+  saved: "from your saved list",
+  starred: "from your starred library",
+  new: "new to you",
+};
+
+/**
+ * creates one contribution opportunity card
+ * @param {object} contribution contribution response item
+ * @returns {HTMLElement} contribution card
+ */
+function contributionCard(contribution) {
+  const card = document.createElement("article");
+  const head = document.createElement("div");
+  const title = document.createElement("h3");
+  const link = document.createElement("a");
+  const score = document.createElement("strong");
+  const meta = document.createElement("p");
+  const labels = document.createElement("div");
+  const why = document.createElement("div");
+  const whyTitle = document.createElement("p");
+  const reasons = document.createElement("ul");
+  const scope = document.createElement("p");
+  card.className = "card";
+  head.className = "card-head";
+  link.href = contribution.url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.textContent = `${contribution.repository}#${contribution.number}`;
+  title.appendChild(link);
+  score.textContent = `${Math.round(contribution.score * 100)}%`;
+  score.className = "score";
+  head.append(title, score);
+  const issueTitle = document.createElement("p");
+  issueTitle.className = "issue-title";
+  issueTitle.textContent = contribution.title;
+  meta.className = "meta";
+  const assignment = contribution.assignee_count ? `assigned to ${contribution.assignee_count}` : "unassigned";
+  const origin = CONTRIBUTION_SOURCES[contribution.source] || contribution.source;
+  meta.textContent = `${contribution.language || "Unknown language"} | ${assignment} | ${contribution.comments} comments | ${origin}`;
+  labels.className = "topics";
+  for (const value of contribution.labels) {
+    const label = document.createElement("span");
+    label.className = "topic";
+    label.textContent = value;
+    labels.appendChild(label);
+  }
+  why.className = "why";
+  whyTitle.className = "why-title";
+  whyTitle.textContent = "Why recommended";
+  reasons.className = "reasons";
+  for (const reason of contribution.reasons) {
+    const item = document.createElement("li");
+    item.textContent = reason;
+    reasons.appendChild(item);
+  }
+  why.append(whyTitle, reasons);
+  scope.className = "scope-signal";
+  scope.textContent = `Scope signal: ${contribution.scope_signal}`;
+  if (contribution.scope_evidence.length) {
+    scope.title = contribution.scope_evidence.join(" | ");
+  }
+  card.append(head, issueTitle, meta, labels, why, scope);
+  return card;
+}
+
+/**
+ * loads ranked contribution opportunities
+ * @returns {Promise<void>} no return value
+ */
+async function loadContributions() {
+  const button = document.querySelector("#refresh-contributions");
+  const container = document.querySelector("#contributions");
+  const warning = document.querySelector("#contribution-warning");
+  const selectedScope = document.querySelector('input[name="contribution-scope"]:checked');
+  const parameters = new URLSearchParams({
+    limit: document.querySelector("#contribution-limit").value,
+    unassigned_only: document.querySelector("#contribution-unassigned").checked,
+    scope: selectedScope ? selectedScope.value : "discover",
+  });
+  button.disabled = true;
+  button.textContent = "Reading open issues...";
+  warning.textContent = "";
+  try {
+    const data = await api(`/api/contributions?${parameters}`);
+    container.replaceChildren(...data.contributions.map(contributionCard));
+    if (!data.contributions.length) {
+      const empty = document.createElement("div");
+      const heading = document.createElement("p");
+      const detail = document.createElement("p");
+      empty.className = "recommendation-empty";
+      heading.className = "empty-title";
+      heading.textContent = "No open issues stood out.";
+      detail.className = "empty";
+      detail.textContent =
+        data.message ||
+        (data.scope === "saved_starred"
+          ? "Try the Discover scope, or save and star a few more repositories."
+          : "Add a few more interests to your profile and try again.");
+      empty.append(heading, detail);
+      container.replaceChildren(empty);
+    }
+    if (data.warning) {
+      warning.textContent = `Partial results. GitHub issue search stopped early: ${data.warning}`;
+      warning.classList.add("error");
+    } else {
+      warning.classList.remove("error");
+    }
+  } finally {
+    button.disabled = false;
+    button.textContent = "Find an issue to work on";
+  }
+}
+
 /**
  * creates a request payload from repository metadata
  * @param {object} repository repository metadata
@@ -599,6 +713,7 @@ document.querySelector("#sync").addEventListener("click", () => handle(async () 
   showMessage(`Cached ${result.starred_count} starred repositories${reconciled}`);
 }));
 refreshButton.addEventListener("click", () => handle(loadRecommendations));
+document.querySelector("#refresh-contributions").addEventListener("click", () => handle(loadContributions));
 document.querySelector("#reload-profile").addEventListener("click", () => handle(loadProfile));
 document.querySelector("#reload-saved").addEventListener("click", () => handle(loadInterested));
 document.querySelector("#reload-starred").addEventListener("click", () => handle(loadStarred));

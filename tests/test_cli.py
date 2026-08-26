@@ -1,5 +1,5 @@
-from repo_radar.cli import run_import_profile, run_init, run_profile, run_recommend
-from repo_radar.models import ImportedProfile, ImportedRepository, Repository, SeedPreferences
+from repo_radar.cli import run_contribute, run_import_profile, run_init, run_profile, run_recommend
+from repo_radar.models import ImportedProfile, ImportedRepository, Issue, Repository, SeedPreferences
 from repo_radar.storage import Storage
 
 
@@ -153,3 +153,89 @@ def test_cli_import_profile_uses_shared_importer(tmp_path, monkeypatch, capsys) 
     assert run_import_profile(storage, "example") == 0
     assert storage.load_imported_profile() is not None
     assert "Imported 2 public repositories" in capsys.readouterr().out
+
+
+class ContributionClient:
+    """GitHub client returning deterministic contribution candidates"""
+
+    def __init__(self) -> None:
+        """
+        initialize issue query tracking
+        :returns: nothing
+        """
+        self.queries: list[str] = []
+
+    def get_authenticated_user(self) -> str:
+        """
+        return the mocked authenticated login
+        :returns: authenticated login
+        """
+        return "example"
+
+    def search_issues(self, query: str, limit: int = 50) -> list[Issue]:
+        """
+        return mocked issue candidates for one grouped query
+        :param query: generated issue search query
+        :param limit: requested result limit
+        :returns: mocked issue candidates
+        """
+        self.queries.append(query)
+        return [
+            Issue(
+                repository="acme/service",
+                number=7,
+                title="Improve backend automation retry handling",
+                url="https://github.com/acme/service/issues/7",
+                body="Steps to reproduce: call the client twice and inspect src/retry.py.",
+                labels=["help wanted"],
+                updated_at="2026-01-01T00:00:00Z",
+            ),
+            Issue(
+                repository="blocked/repo",
+                number=1,
+                title="Unrelated work in a rejected repository",
+                url="https://github.com/blocked/repo/issues/1",
+                updated_at="2026-01-01T00:00:00Z",
+            ),
+        ]
+
+
+def test_contribute_requires_local_repository_evidence(tmp_path, capsys) -> None:
+    """
+    an empty saved and starred state prints scope guidance instead of searching
+    :param tmp_path: pytest temporary directory
+    :param capsys: pytest output capture fixture
+    :returns: nothing
+    """
+    assert run_contribute(Storage(tmp_path), 10, scope="saved_starred") == 0
+    assert "No saved or starred repositories are available yet" in capsys.readouterr().out
+
+
+def test_contribute_ranks_and_explains_issues_from_followed_repositories(tmp_path, monkeypatch, capsys) -> None:
+    """
+    the CLI shares the ranking pipeline and prints the evidence behind each result
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :param capsys: pytest output capture fixture
+    :returns: nothing
+    """
+    storage = Storage(tmp_path)
+    storage.save_repositories(
+        [
+            Repository("acme/service", "backend automation service", "Python", ["backend"], 900, owner="acme"),
+            Repository("blocked/repo", language="Python", owner="blocked"),
+        ]
+    )
+    storage.save_feedback({"blocked/repo": "blocked"})
+    client = ContributionClient()
+    monkeypatch.setattr("repo_radar.cli.GitHubClient", lambda: client)
+
+    assert run_contribute(storage, 5, scope="saved_starred") == 0
+    output = capsys.readouterr().out
+    assert client.queries
+    assert "blocked/repo" not in client.queries[0]
+    assert "acme/service#7" in output
+    assert "Why recommended:" in output
+    assert "Label: help wanted" in output
+    assert "Scope signal: Focused" in output
+    assert "blocked/repo#1" not in output

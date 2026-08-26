@@ -11,11 +11,27 @@ from typing import Any
 
 from dotenv import load_dotenv
 
-from .models import Repository
+from .models import Issue, Repository
+
+# The GitHub Search API is limited to 30 authenticated requests per minute, far below the
+# 5000 per hour core limit, so issue search must stay grouped and single page.
+ISSUE_SEARCH_RESULT_LIMIT = 100
 
 
 class GitHubError(RuntimeError):
     """user facing GitHub API failure"""
+
+    def __init__(self, message: str, status: int | None = None) -> None:
+        """
+        initialize the failure
+        :param message: safe user facing message
+        :param status: originating HTTP status when the failure came from a response
+        :returns: nothing
+        """
+        super().__init__(message)
+        # recorded so a caller can tell a repository specific failure it may skip from a
+        # rate limit or credential failure that every following request would hit too
+        self.status = status
 
 
 class GitHubClient:
@@ -62,7 +78,7 @@ class GitHubClient:
             with urllib.request.urlopen(request, timeout=30) as response:
                 status = getattr(response, "status", 200)
                 if not 200 <= status < 300:
-                    raise GitHubError(f"GitHub API request failed with status {status}")
+                    raise GitHubError(f"GitHub API request failed with status {status}", status)
                 body = response.read()
                 if not body:
                     data = None
@@ -77,13 +93,16 @@ class GitHubClient:
             reset = error.headers.get("X-RateLimit-Reset")
             detail = error.read().decode("utf-8", errors="replace")
             if error.code in (403, 429) and remaining == "0":
-                raise GitHubError(f"GitHub API rate limit exceeded. Reset timestamp: {reset or 'unknown'}") from error
+                raise GitHubError(
+                    f"GitHub API rate limit exceeded. Reset timestamp: {reset or 'unknown'}", error.code
+                ) from error
             if error.code == 403 and method == "PUT" and path.startswith("/user/starred/"):
                 raise GitHubError(
                     "GitHub denied the star request. Update the fine-grained token to allow Starring write "
-                    "and Metadata read, then restart Repo Radar"
+                    "and Metadata read, then restart Repo Radar",
+                    error.code,
                 ) from error
-            raise GitHubError(f"GitHub API request failed with status {error.code}: {detail}") from error
+            raise GitHubError(f"GitHub API request failed with status {error.code}: {detail}", error.code) from error
         except (urllib.error.URLError, TimeoutError, OSError) as error:
             raise GitHubError(f"Could not connect to GitHub: {error}") from error
 
@@ -128,6 +147,25 @@ class GitHubClient:
             raise GitHubError("GitHub returned invalid starred repository data")
         return [Repository.from_github(item) for item in items]
 
+    def get_repository(self, full_name: str) -> Repository:
+        """
+        fetch metadata for one repository
+
+        This is a core API read, not a Search API read, so it is bounded by the 5000 requests
+        per hour core limit rather than the 30 per minute search limit. Callers must still
+        bound how many they issue; see the hydration limits in `contribution.py`.
+        :param full_name: repository in owner and name form
+        :returns: normalized repository metadata
+        """
+        parts = full_name.strip().split("/")
+        if len(parts) != 2 or not all(parts):
+            raise GitHubError("Repository must use the owner/name format")
+        owner, name = (urllib.parse.quote(part, safe="") for part in parts)
+        data, _ = self._request(f"/repos/{owner}/{name}")
+        if not isinstance(data, dict) or not data.get("full_name"):
+            raise GitHubError("Unexpected response from GitHub repository lookup")
+        return Repository.from_github(data)
+
     def search_repositories(self, query: str, limit: int = 30) -> list[Repository]:
         """
         search GitHub repositories
@@ -139,6 +177,32 @@ class GitHubClient:
         if not isinstance(data, dict) or not isinstance(data.get("items"), list):
             raise GitHubError("Unexpected response from GitHub repository search")
         return [Repository.from_github(item) for item in data["items"][:limit]]
+
+    def search_issues(self, query: str, limit: int = 50) -> list[Issue]:
+        """
+        search GitHub issues and keep only usable open issues
+        :param query: GitHub issue search query
+        :param limit: maximum candidates to return
+        :returns: normalized open issues
+        """
+        bounded = max(1, min(limit, ISSUE_SEARCH_RESULT_LIMIT))
+        # advanced_search selects GitHub's current issue search syntax, which is what the
+        # grouped `(repo:a/b OR repo:c/d)` scope built by the contribution pipeline requires
+        data, _ = self._request(
+            "/search/issues",
+            {"q": query, "sort": "updated", "order": "desc", "per_page": bounded, "advanced_search": "true"},
+        )
+        if not isinstance(data, dict) or not isinstance(data.get("items"), list):
+            raise GitHubError("Unexpected response from GitHub issue search")
+        items = data["items"][:bounded]
+        if any(not isinstance(item, dict) for item in items):
+            raise GitHubError("GitHub returned invalid issue search data")
+        # a single unusable row must not discard an otherwise good batch, so individual
+        # pull requests, closed issues, and identity-less rows are dropped rather than raised
+        issues = [Issue.from_github(item) for item in items]
+        return [
+            issue for issue in issues if issue.is_identifiable() and not issue.is_pull_request and issue.state == "open"
+        ]
 
     def star_repository(self, repository: str) -> None:
         """
