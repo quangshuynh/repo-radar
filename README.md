@@ -1,6 +1,6 @@
 # Repo Radar
 
-Repo Radar is a private, local-first GitHub discovery tool. It learns from repositories you star, projects you save, your public GitHub portfolio, manual interests, and ongoing feedback. It then searches GitHub and ranks repositories with transparent relevance, activity, quality, and novelty signals.
+Repo Radar is a private, local-first GitHub discovery tool. It learns what kinds of software you care about from repositories you star, projects you save, your public GitHub portfolio, manual interests, and ongoing feedback. It then discovers repositories that match those interests and surfaces open contribution opportunities inside them, ranked with transparent relevance, activity, quality, and novelty signals.
 
 [![CI](https://github.com/quangshuynh/repo-radar/actions/workflows/ci.yml/badge.svg)](https://github.com/quangshuynh/repo-radar/actions/workflows/ci.yml)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)
@@ -11,6 +11,7 @@ Repo Radar is a private, local-first GitHub discovery tool. It learns from repos
 ## Features
 
 - Discover repositories from focused GitHub searches
+- Rank open issues in repositories you already saved or starred as contribution opportunities
 - Build one preference profile from several transparent sources
 - Save interesting repositories for later
 - Star one saved repository or a confirmed batch on GitHub
@@ -101,8 +102,9 @@ Saved cards show their preference weight and signal count. Repositories with mor
 2. Sync GitHub stars
 3. Select **Find something good**
 4. Save, dismiss, block, or star recommendations
-5. Review saved repositories and the synchronized starred library
-6. Open Feedback history to undo a previous classification
+5. Open **Contribute** and select **Find an issue to work on**
+6. Review saved repositories and the synchronized starred library
+7. Open Feedback history to undo a previous classification
 
 Sync reconciles the local Saved list with GitHub. If you star a saved repository outside Repo Radar, the next sync removes it from Saved and records it as starred locally.
 
@@ -117,6 +119,8 @@ python -m repo_radar sync
 python -m repo_radar profile
 python -m repo_radar recommend
 python -m repo_radar recommend --limit 5
+python -m repo_radar contribute
+python -m repo_radar contribute --limit 5 --unassigned-only
 python -m repo_radar feedback owner/repository not-interested
 python -m repo_radar web
 ```
@@ -126,6 +130,7 @@ python -m repo_radar web
 - `sync` refreshes the authenticated user's starred repository cache
 - `profile` prints the merged preference profile and active source counts
 - `recommend` discovers and ranks a fresh set of eligible repositories
+- `contribute` ranks open issues in the repositories you saved and starred
 - `feedback` records `interested`, `not-interested`, `starred`, or `blocked`
 - `web` starts the local FastAPI interface on `127.0.0.1:8000`
 
@@ -139,6 +144,85 @@ Repo Radar builds targeted searches from the strongest profile languages and top
 - Result novelty
 
 The ranking system uses weighted counts and readable heuristics rather than embeddings, language models, or opaque machine-learning models.
+
+## Contribution discovery
+
+The **Contribute** view answers a different question from Discover: not *which repositories
+might interest me*, but *which open issues in the repositories I already follow are worth my
+time to investigate*.
+
+### How issues are selected
+
+Contribution discovery starts from local evidence rather than from GitHub-wide search:
+
+1. Saved repositories first, then the synchronized starred cache.
+2. Archived repositories, repositories you own, repositories owned by your imported
+   GitProfileLens profile, and anything you blocked or dismissed are removed.
+3. The remaining repositories are ordered by explicit interest, then by their repository
+   relevance score, and the strongest ten become the search scope.
+4. Those ten are batched five at a time into grouped `is:issue is:open` searches, producing
+   at most two Search API requests and at most 120 issue candidates for one run.
+
+Pull requests, closed issues, and rows without a usable repository, number, or title never
+enter the candidate set.
+
+### How ranking works
+
+Issue ranking is a separate scoring layer from repository ranking, and it does not change any
+repository ranking weight. Every recommendation is scored as:
+
+| Signal | Weight | What it measures |
+| --- | ---: | --- |
+| Repository relevance | `0.30` | the existing repository score for the repository owning the issue |
+| Issue relevance | `0.35` | profile overlap with the issue title, labels, and a bounded slice of the body |
+| Contribution friendliness | `0.15` | beginner and help-wanted labels, no assignee, a written description |
+| Freshness | `0.10` | recency of the last update, decaying to zero over 180 days |
+| Scope readiness | `0.10` | reproduction steps, code references, discussion volume, caution labels |
+
+Personalization carries `0.65` of the total, so a beginner label alone cannot lift an
+unrelated issue above a strongly relevant one. Ties break on repository name, then issue
+number, so ordering is fully deterministic. A separate per-repository cap of three keeps one
+busy project from filling every slot; it is applied after scoring, so the score you see is
+always raw relevance rather than a diversity-adjusted value.
+
+Assigned issues are **kept with a reduced friendliness score rather than hidden**, because
+GitHub assignment is frequently stale and silently discarding issues contradicts the
+project's transparency goal. The assignment is stated in the explanation, and
+`--unassigned-only` (or the **Unassigned only** checkbox) filters them out when you want that.
+
+### Why it stays explainable
+
+Every recommendation lists only the evidence that actually contributed to its score: the
+repository match, the matched profile terms, the labels that scored, assignment status, and
+update recency. The scope signal (`Focused`, `Unclear`, or `Needs discussion`) reports its own
+evidence and is deliberately descriptive. Repo Radar does not estimate difficulty or effort,
+and it uses no language model, embedding, or learned ranker.
+
+### GitHub API behavior and limits
+
+- Issue search uses the GitHub Search API, which is limited to **30 authenticated requests
+  per minute** — far tighter than the 5000 per hour core limit.
+- One contribution run issues at most two search requests plus one `/user` request. It reads
+  repositories from local state, so it costs no repository searches.
+- Results are single page. There is no pagination and no per-repository request fan-out.
+- Queries use GitHub's current advanced issue search syntax and stay within the 256 character
+  query limit and GitHub's cap on boolean operators per query.
+- If a search fails or is rate limited, the run stops early, keeps whatever it already
+  collected, and reports a warning instead of failing. Configured tokens are never echoed.
+
+### Known limitations
+
+- Contribution candidates come only from saved and starred repositories. Highly ranked
+  Discover results are not yet a source, because that would require a full repository
+  discovery run before any issue search.
+- Repository-level contribution readiness (`CONTRIBUTING.md`, CI metadata, maintainer
+  responsiveness) is **not** measured. It would require per-repository requests that the
+  current bounded design deliberately avoids.
+- Issue results are generated on demand and are not cached.
+- Labels are normalized against a small transparent vocabulary, so unusual project-specific
+  labels contribute nothing rather than being guessed at.
+- Contribution recommendations are read-only. Repo Radar never comments, assigns, or opens
+  a pull request.
 
 ## Recommendation evaluation
 
@@ -200,6 +284,7 @@ Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup and
 ## Current boundaries
 
 - Search coverage depends on the strongest profile signals and GitHub search limits
+- Contribution discovery searches only the repositories you saved or starred
 - Recommendations are generated on demand rather than cached
 - GitProfileLens remains optional and the last valid import survives refresh failures
 - GitHub starring depends on token capabilities and GitHub API availability
@@ -207,6 +292,7 @@ Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup and
 
 ## Roadmap
 
+- Measure contribution ranking quality against real contribution outcomes
 - Improve recommendation explanations with per-signal score details
 - Add sorting and filtering to the starred library
 - Add pagination for large saved and starred collections

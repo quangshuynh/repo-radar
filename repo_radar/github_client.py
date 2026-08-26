@@ -11,7 +11,11 @@ from typing import Any
 
 from dotenv import load_dotenv
 
-from .models import Repository
+from .models import Issue, Repository
+
+# The GitHub Search API is limited to 30 authenticated requests per minute, far below the
+# 5000 per hour core limit, so issue search must stay grouped and single page.
+ISSUE_SEARCH_RESULT_LIMIT = 100
 
 
 class GitHubError(RuntimeError):
@@ -139,6 +143,32 @@ class GitHubClient:
         if not isinstance(data, dict) or not isinstance(data.get("items"), list):
             raise GitHubError("Unexpected response from GitHub repository search")
         return [Repository.from_github(item) for item in data["items"][:limit]]
+
+    def search_issues(self, query: str, limit: int = 50) -> list[Issue]:
+        """
+        search GitHub issues and keep only usable open issues
+        :param query: GitHub issue search query
+        :param limit: maximum candidates to return
+        :returns: normalized open issues
+        """
+        bounded = max(1, min(limit, ISSUE_SEARCH_RESULT_LIMIT))
+        # advanced_search selects GitHub's current issue search syntax, which is what the
+        # grouped `(repo:a/b OR repo:c/d)` scope built by the contribution pipeline requires
+        data, _ = self._request(
+            "/search/issues",
+            {"q": query, "sort": "updated", "order": "desc", "per_page": bounded, "advanced_search": "true"},
+        )
+        if not isinstance(data, dict) or not isinstance(data.get("items"), list):
+            raise GitHubError("Unexpected response from GitHub issue search")
+        items = data["items"][:bounded]
+        if any(not isinstance(item, dict) for item in items):
+            raise GitHubError("GitHub returned invalid issue search data")
+        # a single unusable row must not discard an otherwise good batch, so individual
+        # pull requests, closed issues, and identity-less rows are dropped rather than raised
+        issues = [Issue.from_github(item) for item in items]
+        return [
+            issue for issue in issues if issue.is_identifiable() and not issue.is_pull_request and issue.state == "open"
+        ]
 
     def star_repository(self, repository: str) -> None:
         """

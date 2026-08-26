@@ -11,11 +11,12 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from .contribution import generate_contribution_recommendations, source_labels
 from .discovery import generate_recommendations
 from .feedback import reconcile_starred_repositories, record_feedback
 from .github_client import GitHubClient, GitHubError
 from .gitprofilelens import GitProfileLensError, import_profile
-from .models import Recommendation, Repository, SeedPreferences
+from .models import IssueRecommendation, Recommendation, Repository, SeedPreferences
 from .profile import INTERESTED_REPOSITORY_WEIGHT, build_profile, extract_keywords
 from .storage import Storage
 
@@ -83,15 +84,23 @@ def _clean_values(values: list[str], lowercase: bool = False) -> list[str]:
     return list(unique.values())
 
 
+def _redact(message: str) -> str:
+    """
+    remove configured credentials from a user facing message
+    :param message: message that may quote a GitHub response
+    :returns: safe user facing message
+    """
+    token = os.environ.get("GITHUB_TOKEN")
+    return message.replace(token, "[redacted]") if token else message
+
+
 def _safe_error(error: Exception) -> str:
     """
     remove configured credentials from an error message
     :param error: application error
     :returns: safe user facing error message
     """
-    message = str(error)
-    token = os.environ.get("GITHUB_TOKEN")
-    return message.replace(token, "[redacted]") if token else message
+    return _redact(str(error))
 
 
 def _recommendation_data(recommendation: Recommendation) -> dict[str, object]:
@@ -110,6 +119,32 @@ def _recommendation_data(recommendation: Recommendation) -> dict[str, object]:
         "url": repository.url,
         "topics": repository.topics,
         "explanation": recommendation.explanation,
+    }
+
+
+def _contribution_data(recommendation: IssueRecommendation, sources: dict[str, str]) -> dict[str, object]:
+    """
+    serialize a contribution recommendation for the local API
+    :param recommendation: ranked contribution opportunity
+    :param sources: mapping from lowercase repository name to source label
+    :returns: public contribution recommendation fields
+    """
+    issue = recommendation.issue
+    return {
+        "repository": issue.repository,
+        "number": issue.number,
+        "title": issue.title,
+        "url": issue.url,
+        "labels": issue.labels,
+        "assignee_count": issue.assignee_count,
+        "comments": issue.comments,
+        "updated_at": issue.updated_at,
+        "language": recommendation.repository.language,
+        "source": sources.get(issue.repository.lower(), "relevant"),
+        "score": round(recommendation.score, 4),
+        "reasons": recommendation.reasons,
+        "scope_signal": recommendation.scope_signal,
+        "scope_evidence": recommendation.scope_evidence,
     }
 
 
@@ -488,6 +523,44 @@ def create_app() -> FastAPI:
         ][:limit]
         message = None if filtered else "No eligible recommendations found"
         return {"recommendations": [_recommendation_data(item) for item in filtered], "message": message}
+
+    @application.get("/api/contributions")
+    def get_contributions(
+        limit: int = Query(default=10, ge=1, le=50),
+        unassigned_only: bool = False,
+    ) -> dict[str, object]:
+        """
+        rank open issues in repositories the user already cares about
+        :param limit: maximum contribution opportunities to return
+        :param unassigned_only: whether to drop issues that already have an assignee
+        :returns: contribution recommendations, empty state, and degradation warning
+        """
+        storage = _storage()
+        starred = storage.load_repositories()
+        interested = storage.load_interested_repositories()
+        imported = storage.load_imported_profile()
+        if not starred and not interested:
+            return {
+                "contributions": [],
+                "message": "Save a repository or sync your GitHub stars to find contribution opportunities",
+                "warning": None,
+            }
+        profile = build_profile(starred, storage.load_seed_preferences(), imported, interested)
+        try:
+            client = GitHubClient()
+            owner = client.get_authenticated_user()
+            recommendations, warning = generate_contribution_recommendations(
+                client, profile, interested, starred, owner, storage.load_feedback(), limit, imported, unassigned_only
+            )
+        except (GitHubError, RuntimeError, ValueError) as error:
+            raise HTTPException(status_code=502, detail=_safe_error(error)) from error
+        sources = source_labels(interested, starred)
+        message = None if recommendations else "No open issues matched your interests"
+        return {
+            "contributions": [_contribution_data(item, sources) for item in recommendations],
+            "message": message,
+            "warning": _redact(warning) if warning else None,
+        }
 
     return application
 

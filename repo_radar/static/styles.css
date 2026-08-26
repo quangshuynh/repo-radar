@@ -145,6 +145,11 @@ input:focus { border-color: var(--terracotta); box-shadow: 0 0 0 3px rgb(189 91 
 .actions .star-action, .star-action { border-color: #9b722a; background: #493619; color: #f1c978; }
 .card-message { flex-basis: 100%; margin: .65rem 0 0; padding: .6rem .7rem; border-radius: 8px; background: #293222; color: #b9c99c; font-size: .8rem; line-height: 1.4; }
 .card-message.error { background: #3a211d; color: #efa99d; }
+.issue-title { margin: .55rem 0 .35rem; color: var(--ink); font-size: .95rem; font-weight: 650; line-height: 1.4; }
+.why-title { margin: 0 0 .35rem; color: var(--honey); font-size: .78rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.reasons { margin: 0; padding-left: 1.1rem; }
+.reasons li { margin-bottom: .2rem; overflow-wrap: anywhere; }
+.scope-signal { margin: .7rem 0 0; color: var(--muted); font-size: .8rem; }
 .saved-list { display: grid; gap: .65rem; }
 .saved-repository { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem 1rem; border: 1px solid #4f372d; border-radius: 12px; background: #1c1411; }
 .saved-repository { position: relative; padding-right: 3.25rem; }

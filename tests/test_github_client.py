@@ -170,6 +170,171 @@ def test_star_repository_uses_authenticated_put_request(monkeypatch) -> None:
     assert requests[0].get_header("X-github-api-version") == "2026-03-10"
 
 
+def _issue_search_client(monkeypatch, payload, requests=None):
+    """
+    build a GitHub client whose issue search returns a prepared payload
+    :param monkeypatch: pytest monkeypatch fixture
+    :param payload: mocked issue search response payload
+    :param requests: optional list collecting outgoing requests
+    :returns: GitHub client using the mocked transport
+    """
+
+    def fake_urlopen(request, timeout):
+        """
+        return the mocked issue search response
+        :param request: outgoing URL request
+        :param timeout: outgoing request timeout
+        :returns: fake API response
+        """
+        if requests is not None:
+            requests.append(request)
+        return FakeResponse(payload)
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    return GitHubClient("test-token")
+
+
+def _issue_item(**overrides):
+    """
+    build a GitHub issue search item with useful defaults
+    :param overrides: issue field overrides
+    :returns: mocked GitHub issue search item
+    """
+    item = {
+        "repository_url": "https://api.github.com/repos/owner/repository",
+        "number": 12,
+        "title": "Fix the retry handler",
+        "html_url": "https://github.com/owner/repository/issues/12",
+        "body": "It fails after three attempts.",
+        "labels": [{"name": "Good First Issue"}, {"name": "good-first-issue"}, {"name": "bug"}],
+        "assignees": [],
+        "comments": 3,
+        "created_at": "2025-11-01T00:00:00Z",
+        "updated_at": "2025-12-20T00:00:00Z",
+        "state": "open",
+    }
+    item.update(overrides)
+    return item
+
+
+def test_issue_search_normalizes_a_valid_result(monkeypatch) -> None:
+    """
+    a complete issue search item becomes a normalized issue
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    requests = []
+    client = _issue_search_client(monkeypatch, {"items": [_issue_item()]}, requests)
+    issues = client.search_issues("is:issue is:open (repo:owner/repository)", 40)
+    query = parse_qs(urlparse(requests[0].full_url).query)
+
+    assert urlparse(requests[0].full_url).path == "/search/issues"
+    assert query["q"] == ["is:issue is:open (repo:owner/repository)"]
+    assert query["advanced_search"] == ["true"]
+    assert query["per_page"] == ["40"]
+    assert len(issues) == 1
+    assert issues[0].repository == "owner/repository"
+    assert issues[0].number == 12
+    assert issues[0].labels == ["good first issue", "good-first-issue", "bug"]
+    assert issues[0].assignee_count == 0
+    assert issues[0].comments == 3
+    assert not issues[0].is_pull_request
+
+
+def test_issue_search_excludes_pull_requests_and_closed_issues(monkeypatch) -> None:
+    """
+    pull requests and closed issues never reach the contribution pipeline
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    payload = {
+        "items": [
+            _issue_item(number=1, pull_request={"url": "https://api.github.com/repos/owner/repository/pulls/1"}),
+            _issue_item(number=2, state="closed"),
+            _issue_item(number=3),
+        ]
+    }
+    issues = _issue_search_client(monkeypatch, payload).search_issues("query")
+    assert [issue.number for issue in issues] == [3]
+
+
+def test_issue_search_drops_results_without_a_usable_identity(monkeypatch) -> None:
+    """
+    partial rows without a repository, number, or title are dropped instead of guessed
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    payload = {
+        "items": [
+            _issue_item(number=1, repository_url=None, html_url=""),
+            _issue_item(number=0),
+            _issue_item(number=3, title="   "),
+            _issue_item(number=4),
+        ]
+    }
+    issues = _issue_search_client(monkeypatch, payload).search_issues("query")
+    assert [issue.number for issue in issues] == [4]
+
+
+def test_issue_search_tolerates_missing_optional_fields(monkeypatch) -> None:
+    """
+    a minimal issue payload normalizes without raising
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    minimal = {
+        "html_url": "https://github.com/owner/repository/issues/7",
+        "number": 7,
+        "title": "Document the retry policy",
+    }
+    issues = _issue_search_client(monkeypatch, {"items": [minimal]}).search_issues("query")
+    assert issues[0].repository == "owner/repository"
+    assert issues[0].labels == []
+    assert issues[0].body is None
+    assert issues[0].comments == 0
+    assert issues[0].state == "open"
+    assert issues[0].updated_at is None
+
+
+def test_issue_search_normalizes_labels_and_assignees(monkeypatch) -> None:
+    """
+    string labels, blank labels, and repeated assignees normalize predictably
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    item = _issue_item(
+        labels=["Help Wanted", {"name": ""}, {"name": "help wanted"}, None],
+        assignees=[{"login": "maintainer"}, {"login": "maintainer"}, {}],
+        assignee={"login": "reviewer"},
+    )
+    issues = _issue_search_client(monkeypatch, {"items": [item]}).search_issues("query")
+    assert issues[0].labels == ["help wanted"]
+    assert issues[0].assignee_count == 2
+
+
+def test_malformed_issue_search_response_fails_safely(monkeypatch) -> None:
+    """
+    an unexpected issue search shape raises instead of returning partial nonsense
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    client = _issue_search_client(monkeypatch, {"items": "not-a-list"})
+    try:
+        client.search_issues("query")
+    except GitHubError as error:
+        assert "Unexpected response from GitHub issue search" in str(error)
+    else:
+        raise AssertionError("Expected malformed GitHub issue data to fail")
+
+    invalid = _issue_search_client(monkeypatch, {"items": ["not-an-issue"]})
+    try:
+        invalid.search_issues("query")
+    except GitHubError as error:
+        assert "invalid issue search data" in str(error)
+    else:
+        raise AssertionError("Expected invalid GitHub issue items to fail")
+
+
 def test_malformed_starred_response_fails_safely(monkeypatch) -> None:
     """
     malformed starred items raise an explicit error without any mutation request
