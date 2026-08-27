@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
@@ -15,6 +16,7 @@ from .contribution import (
     CONTRIBUTION_SCOPES,
     DEFAULT_SCOPE,
     SCOPE_SAVED_STARRED,
+    ContributionFilters,
     generate_contribution_recommendations,
     source_labels,
 )
@@ -539,6 +541,10 @@ def create_app() -> FastAPI:
         limit: int = Query(default=10, ge=1, le=50),
         unassigned_only: bool = False,
         scope: str = Query(default=DEFAULT_SCOPE),
+        # Annotated form because a repeated query parameter needs an explicit Query marker,
+        # and a marker in the default position would be a call in an argument default
+        label: Annotated[list[str] | None, Query()] = None,
+        contributor_friendly: bool = False,
     ) -> dict[str, object]:
         """
         rank open issues as contribution opportunities
@@ -546,9 +552,15 @@ def create_app() -> FastAPI:
         An omitted scope discovers opportunities across GitHub, including repositories the
         user has never saved or starred. `saved_starred` restricts candidates to the
         repositories the user already follows.
+
+        Repeated `label` parameters are one OR group: an issue must carry any one of them.
+        `contributor_friendly` is an independent AND: an issue must additionally carry one of
+        the contribution invitation labels. Neither affects how a candidate scores.
         :param limit: maximum contribution opportunities to return
         :param unassigned_only: whether to drop issues that already have an assignee
         :param scope: candidate sourcing scope, discover or saved_starred
+        :param label: issue categories to match, repeated once per category
+        :param contributor_friendly: whether to require a contribution invitation label
         :returns: contribution recommendations, empty state, and degradation warning
         """
         if scope not in CONTRIBUTION_SCOPES:
@@ -556,16 +568,23 @@ def create_app() -> FastAPI:
                 status_code=400,
                 detail=f"Unsupported scope {scope}. Expected one of {', '.join(CONTRIBUTION_SCOPES)}",
             )
+        try:
+            filters = ContributionFilters.create(label, contributor_friendly)
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=_safe_error(error)) from error
         storage = _storage()
         starred = storage.load_repositories()
         interested = storage.load_interested_repositories()
         imported = storage.load_imported_profile()
+        # echoed on every response so a client can tell which filters produced a result set
+        applied = {"labels": list(filters.categories), "contributor_friendly": filters.contributor_friendly}
         if scope == SCOPE_SAVED_STARRED and not starred and not interested:
             return {
                 "contributions": [],
                 "message": "Save a repository or sync your GitHub stars to find contribution opportunities",
                 "warning": None,
                 "scope": scope,
+                **applied,
             }
         profile = build_profile(starred, storage.load_seed_preferences(), imported, interested)
         if not profile.languages and not profile.topics and not profile.keywords:
@@ -574,6 +593,7 @@ def create_app() -> FastAPI:
                 "message": "No preference signals are available yet",
                 "warning": None,
                 "scope": scope,
+                **applied,
             }
         try:
             client = GitHubClient()
@@ -589,16 +609,23 @@ def create_app() -> FastAPI:
                 imported,
                 unassigned_only,
                 scope,
+                filters,
             )
         except (GitHubError, RuntimeError, ValueError) as error:
             raise HTTPException(status_code=502, detail=_safe_error(error)) from error
         sources = source_labels(interested, starred)
-        message = None if recommendations else "No open issues matched your interests"
+        empty = (
+            "No open issues matched your interests and the selected filters"
+            if filters.qualifiers
+            else "No open issues matched your interests"
+        )
+        message = None if recommendations else empty
         return {
             "contributions": [_contribution_data(item, sources) for item in recommendations],
             "message": message,
             "warning": _redact(warning) if warning else None,
             "scope": scope,
+            **applied,
         }
 
     return application

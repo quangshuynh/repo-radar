@@ -287,6 +287,17 @@ function contributionCard(contribution) {
 }
 
 /**
+ * restates the selected issue categories on the collapsed dropdown
+ * @returns {void} no return value
+ */
+function updateIssueTypeSummary() {
+  const selected = [...document.querySelectorAll('input[name="contribution-label"]:checked')];
+  const names = selected.map((input) => input.parentElement.textContent.trim());
+  // no category selected means any category, which is what the collapsed control must say
+  document.querySelector("#contribution-label-value").textContent = names.length ? names.join(", ") : "Any type";
+}
+
+/**
  * loads ranked contribution opportunities
  * @returns {Promise<void>} no return value
  */
@@ -299,7 +310,13 @@ async function loadContributions() {
     limit: document.querySelector("#contribution-limit").value,
     unassigned_only: document.querySelector("#contribution-unassigned").checked,
     scope: selectedScope ? selectedScope.value : "discover",
+    contributor_friendly: document.querySelector("#contribution-friendly").checked,
   });
+  // repeated label parameters are one OR group; the controls keep their state across runs, so
+  // the filters shown beside the results are always the ones that produced them
+  for (const category of document.querySelectorAll('input[name="contribution-label"]:checked')) {
+    parameters.append("label", category.value);
+  }
   button.disabled = true;
   button.textContent = "Reading open issues...";
   warning.textContent = "";
@@ -714,6 +731,13 @@ document.querySelector("#sync").addEventListener("click", () => handle(async () 
 }));
 refreshButton.addEventListener("click", () => handle(loadRecommendations));
 document.querySelector("#refresh-contributions").addEventListener("click", () => handle(loadContributions));
+for (const category of document.querySelectorAll('input[name="contribution-label"]')) {
+  category.addEventListener("change", updateIssueTypeSummary);
+}
+document.addEventListener("click", (event) => {
+  const dropdown = document.querySelector("#contribution-labels");
+  if (dropdown.open && !dropdown.contains(event.target)) dropdown.open = false;
+});
 document.querySelector("#reload-profile").addEventListener("click", () => handle(loadProfile));
 document.querySelector("#reload-saved").addEventListener("click", () => handle(loadInterested));
 document.querySelector("#reload-starred").addEventListener("click", () => handle(loadStarred));

@@ -14,16 +14,22 @@ The scopes differ only in *where candidates come from*. They converge on the sam
 normalized issue candidates and the same `issue_ranking.rank_issues` implementation, so
 there is exactly one place that decides what a good contribution opportunity is.
 
+`ContributionFilters` narrows what either scope retrieves. Filters are label qualifiers on
+the queries this module builds and a guard in `normalize_candidates`; they never reach
+`rank_issues`, so a filtered run reports the same score for an issue that an unfiltered run
+would.
+
 Every GitHub bound for both scopes lives in this module.
 """
 
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from .github_client import GitHubClient, GitHubError
-from .issue_ranking import issue_priority, rank_issues
+from .issue_ranking import issue_priority, normalize_label, rank_issues
 from .models import ImportedProfile, Issue, IssueRecommendation, PreferenceProfile, Repository
 from .ranking import score_repository
 
@@ -65,9 +71,17 @@ SEARCH_REQUEST_BUDGET = {
 EXCLUDED_CLASSIFICATIONS = frozenset({"not interested", "blocked"})
 
 ISSUE_QUERY_BASE = "is:issue is:open archived:false"
-# comma separated values inside one label qualifier are an OR, which keeps the explicit
-# contribution invitation strategy to a single boolean-cheap qualifier
-CONTRIBUTION_LABEL_QUALIFIER = 'label:"good first issue","help wanted","contributions welcome","up for grabs"'
+
+# The issue categories a user may filter on. Kept to a small closed vocabulary of labels
+# GitHub itself seeds repositories with, so a selection means the same thing across projects.
+# Declaration order is the canonical order: it is what makes a selection's query text
+# independent of the order the user happened to click or type the categories in.
+ISSUE_CATEGORIES = ("bug", "documentation", "enhancement", "accessibility")
+
+# Labels a project uses to explicitly invite outside contribution. Separate from the
+# categories above because "what kind of work is this" and "does this project want help with
+# it" are independent questions, and a user may ask either, both, or neither.
+CONTRIBUTION_INVITATION_LABELS = ("good first issue", "help wanted", "contributions welcome", "up for grabs")
 
 # GitHub issue search has no topic qualifier, so profile topics and keywords are used as
 # free text. Terms are sanitized to characters GitHub search treats as ordinary word
@@ -80,6 +94,104 @@ MINIMUM_TERM_LENGTH = 3
 # a repository specific failure costs one candidate; these failures would repeat on every
 # following request, so hydration stops instead of burning the rest of the budget
 FATAL_HYDRATION_STATUSES = frozenset({401, 403, 429})
+
+
+def _label_qualifier(labels: tuple[str, ...]) -> str:
+    """
+    express one label group as a single GitHub qualifier
+
+    Comma separated values inside one `label:` qualifier are an OR, and separate `label:`
+    qualifiers are ANDed. That is what lets a category group and the invitation group be
+    combined as `(bug OR docs) AND (good first issue OR help wanted OR ...)` in one request
+    instead of one request per label.
+    :param labels: label names belonging to one group
+    :returns: GitHub label qualifier or an empty string when the group is empty
+    """
+    if not labels:
+        return ""
+    quoted = ",".join('"' + label + '"' for label in labels)
+    return f"label:{quoted}"
+
+
+CONTRIBUTION_LABEL_QUALIFIER = _label_qualifier(CONTRIBUTION_INVITATION_LABELS)
+
+
+@dataclass(frozen=True)
+class ContributionFilters:
+    """the user's explicit issue filters, normalized once and applied everywhere
+
+    Categories and contributor friendliness stay separate fields rather than one label list,
+    because they are separate questions with different query semantics: categories are an OR
+    group the user chose, invitation labels are a fixed OR group, and selecting both means the
+    two groups are ANDed.
+
+    Construct through `create`, which normalizes and validates; the constructor is left
+    permissive so an already-normalized value can be rebuilt cheaply.
+    """
+
+    categories: tuple[str, ...] = ()
+    contributor_friendly: bool = False
+
+    @classmethod
+    def create(
+        cls,
+        categories: list[str] | tuple[str, ...] | None = None,
+        contributor_friendly: bool = False,
+    ) -> ContributionFilters:
+        """
+        normalize and validate user selected filters
+        :param categories: selected issue categories in any order, possibly repeated
+        :param contributor_friendly: whether to require a contribution invitation label
+        :returns: normalized filters
+        """
+        selected = {value.strip().lower() for value in categories or () if value.strip()}
+        unsupported = sorted(selected - set(ISSUE_CATEGORIES))
+        if unsupported:
+            raise ValueError(
+                f"Unsupported issue category {', '.join(unsupported)}. Expected one of {', '.join(ISSUE_CATEGORIES)}"
+            )
+        # canonical order, not selection order, so the same set always builds the same query
+        ordered = tuple(name for name in ISSUE_CATEGORIES if name in selected)
+        return cls(categories=ordered, contributor_friendly=bool(contributor_friendly))
+
+    @property
+    def category_qualifier(self) -> str:
+        """
+        express the selected categories as one OR group
+        :returns: GitHub label qualifier or an empty string when no category is selected
+        """
+        return _label_qualifier(self.categories)
+
+    @property
+    def qualifiers(self) -> tuple[str, ...]:
+        """
+        express every selected filter as ANDed GitHub qualifiers
+        :returns: label qualifiers, one per selected group
+        """
+        groups = (self.category_qualifier, CONTRIBUTION_LABEL_QUALIFIER if self.contributor_friendly else "")
+        return tuple(group for group in groups if group)
+
+    def matches(self, issue: Issue) -> bool:
+        """
+        re-apply the selected filters to one retrieved candidate
+
+        GitHub already applied these qualifiers, so this normally changes nothing. It exists
+        because normalization is the one place every candidate passes through regardless of
+        which query sourced it, and because a filter the user explicitly asked for should not
+        depend on a remote service having honored it. This is retrieval, not ranking: no score
+        is consulted or adjusted here.
+        :param issue: retrieved issue candidate
+        :returns: whether the issue satisfies every selected filter group
+        """
+        labels = {normalize_label(label) for label in issue.labels}
+        if self.categories and not labels.intersection(self.categories):
+            return False
+        if self.contributor_friendly and not labels.intersection(CONTRIBUTION_INVITATION_LABELS):
+            return False
+        return True
+
+
+NO_FILTERS = ContributionFilters()
 
 
 def select_source_repositories(
@@ -120,18 +232,49 @@ def select_source_repositories(
     return [repository for *_, repository in ordered][:limit]
 
 
-def build_issue_queries(repositories: list[Repository], batch_size: int = REPOSITORY_BATCH_SIZE) -> list[str]:
+def build_issue_queries(
+    repositories: list[Repository],
+    filters: ContributionFilters = NO_FILTERS,
+    batch_size: int = REPOSITORY_BATCH_SIZE,
+) -> list[str]:
     """
     build grouped open issue searches for the selected repositories
+
+    Selected filters are prepended as label qualifiers rather than expanded into extra
+    searches, so the Search API cost of a run is `ceil(len(repositories) / batch_size)`
+    whether zero or every filter is selected. Label qualifiers consume the same 256 character
+    query budget the repository group does, so a batch closes early when the next repository
+    would overflow the limit and the remainder moves to the following batch. Filtering
+    therefore narrows how many repositories one request can cover, and the repositories that
+    do not fit are the weakest ones rather than an arbitrary subset; it never buys another
+    request.
     :param repositories: bounded source repositories
+    :param filters: user selected issue filters
     :param batch_size: repositories searched by one query
     :returns: grouped GitHub issue search queries
     """
+    size = max(1, batch_size)
+    prefix = " ".join((ISSUE_QUERY_BASE, *filters.qualifiers))
+    # the request count follows from the repository count alone, so no filter can raise it
+    budget = -(-len(repositories) // size)
     queries: list[str] = []
-    for start in range(0, len(repositories), max(1, batch_size)):
-        batch = repositories[start : start + max(1, batch_size)]
-        scope = " OR ".join(f"repo:{repository.full_name}" for repository in batch)
-        queries.append(f"{ISSUE_QUERY_BASE} ({scope})")
+    batch: list[str] = []
+    for repository in repositories:
+        if len(queries) >= budget:
+            break
+        scope = f"repo:{repository.full_name}"
+        candidate = [*batch, scope]
+        if len(candidate) > size or len(f"{prefix} ({' OR '.join(candidate)})") > QUERY_CHARACTER_LIMIT:
+            if batch:
+                queries.append(f"{prefix} ({' OR '.join(batch)})")
+            batch = []
+            candidate = [scope]
+            # one repository whose name alone overflows the limit is unsearchable, not fatal
+            if len(f"{prefix} ({scope})") > QUERY_CHARACTER_LIMIT:
+                continue
+        batch = candidate
+    if batch and len(queries) < budget:
+        queries.append(f"{prefix} ({' OR '.join(batch)})")
     return queries
 
 
@@ -208,21 +351,33 @@ def _bounded_query(parts: list[str], terms: list[str]) -> str:
     return ""
 
 
-def build_discovery_queries(profile: PreferenceProfile, max_queries: int = MAX_DISCOVERY_QUERIES) -> list[str]:
+def build_discovery_queries(
+    profile: PreferenceProfile,
+    max_queries: int = MAX_DISCOVERY_QUERIES,
+    filters: ContributionFilters = NO_FILTERS,
+) -> list[str]:
     """
     derive bounded GitHub-wide contribution searches from the preference profile
 
     Two deliberately different strategies run per language. The relevance strategy carries no
-    label qualifier at all, so a highly relevant unassigned bug with no beginner label is
+    invitation qualifier, so a highly relevant unassigned bug with no beginner label is
     reachable; the invitation strategy carries no profile terms, so a repository the user has
     never encountered can still enter the pool on an explicit call for contributors. Relevance
     queries are emitted first, so a reduced budget keeps the strategy that is not restricted
     to beginner labels.
 
-    Generation is a pure function of the profile: signals are sorted by weight then name, so
-    the same profile always yields the same queries in the same order.
+    Selected filters narrow both strategies rather than replacing either. Selected categories
+    are ANDed onto every query as one OR group. `contributor_friendly` additionally puts the
+    invitation qualifier on the relevance strategy, because leaving one query unrestricted
+    would quietly return exactly the issues the user asked to exclude; the two strategies stay
+    distinct because one still carries profile terms and the other still does not.
+
+    Generation is a pure function of the profile and the filters: signals are sorted by weight
+    then name and categories are held in canonical order, so the same inputs always yield the
+    same queries in the same order.
     :param profile: user preference profile
     :param max_queries: maximum searches to issue
+    :param filters: user selected issue filters
     :returns: bounded deterministic issue search queries
     """
     languages = _strongest(profile.languages, DISCOVERY_LANGUAGES)
@@ -230,9 +385,14 @@ def build_discovery_queries(profile: PreferenceProfile, max_queries: int = MAX_D
     if not languages and not terms:
         return []
     scopes = [qualifier for qualifier in (_language_qualifier(name) for name in languages) if qualifier] or [""]
-    relevance = [_bounded_query([ISSUE_QUERY_BASE, scope], terms) for scope in scopes] if terms else []
+    relevance = (
+        [_bounded_query([ISSUE_QUERY_BASE, scope, *filters.qualifiers], terms) for scope in scopes] if terms else []
+    )
     invitation = [
-        " ".join(part for part in (ISSUE_QUERY_BASE, scope, CONTRIBUTION_LABEL_QUALIFIER) if part) for scope in scopes
+        " ".join(
+            part for part in (ISSUE_QUERY_BASE, scope, filters.category_qualifier, CONTRIBUTION_LABEL_QUALIFIER) if part
+        )
+        for scope in scopes
     ]
     queries = [query for query in [*relevance, *invitation] if query and len(query) <= QUERY_CHARACTER_LIMIT]
     return list(dict.fromkeys(queries))[: max(0, max_queries)]
@@ -272,6 +432,7 @@ def collect_issue_candidates(
     repositories: list[Repository],
     per_query: int = ISSUES_PER_QUERY,
     max_candidates: int = MAX_ISSUE_CANDIDATES,
+    filters: ContributionFilters = NO_FILTERS,
 ) -> tuple[list[Issue], str | None]:
     """
     run the grouped issue searches and combine their bounded results
@@ -279,9 +440,10 @@ def collect_issue_candidates(
     :param repositories: bounded source repositories
     :param per_query: result limit for each search
     :param max_candidates: maximum combined issue candidates
+    :param filters: user selected issue filters
     :returns: deduplicated issue candidates and an optional degradation warning
     """
-    return _run_issue_searches(client, build_issue_queries(repositories), per_query, max_candidates)
+    return _run_issue_searches(client, build_issue_queries(repositories, filters), per_query, max_candidates)
 
 
 def collect_discovery_candidates(
@@ -290,6 +452,7 @@ def collect_discovery_candidates(
     per_query: int = ISSUES_PER_QUERY,
     max_candidates: int = MAX_ISSUE_CANDIDATES,
     max_queries: int = MAX_DISCOVERY_QUERIES,
+    filters: ContributionFilters = NO_FILTERS,
 ) -> tuple[list[Issue], str | None]:
     """
     run the profile derived GitHub-wide searches and combine their bounded results
@@ -298,9 +461,10 @@ def collect_discovery_candidates(
     :param per_query: result limit for each search
     :param max_candidates: maximum combined issue candidates
     :param max_queries: maximum searches to issue
+    :param filters: user selected issue filters
     :returns: deduplicated issue candidates and an optional degradation warning
     """
-    queries = build_discovery_queries(profile, max_queries)
+    queries = build_discovery_queries(profile, max_queries, filters)
     return _run_issue_searches(client, queries, per_query, max_candidates)
 
 
@@ -403,15 +567,20 @@ def normalize_candidates(
     issues: list[Issue],
     repositories: dict[str, Repository],
     unassigned_only: bool = False,
+    filters: ContributionFilters = NO_FILTERS,
 ) -> list[Issue]:
     """
     apply the candidate rules both scopes converge on before ranking
 
     The pull request and open state guards repeat the client boundary check on purpose: this
-    is the one place every candidate passes through regardless of how it was sourced.
+    is the one place every candidate passes through regardless of how it was sourced. The
+    selected filters are re-applied here for the same reason; they are explicit user requests,
+    not the hidden beginner-label filtering the project rejects, and nothing about them
+    reaches ranking.
     :param issues: eligible issue candidates
     :param repositories: repository metadata keyed by lowercase full name
     :param unassigned_only: whether to drop issues that already have an assignee
+    :param filters: user selected issue filters
     :returns: deduplicated rankable issue candidates
     """
     unique: dict[tuple[str, int], Issue] = {}
@@ -422,6 +591,8 @@ def normalize_candidates(
         if repository is None or repository.archived:
             continue
         if unassigned_only and issue.assignee_count:
+            continue
+        if not filters.matches(issue):
             continue
         unique.setdefault((issue.repository.lower(), issue.number), issue)
     return list(unique.values())
@@ -438,6 +609,7 @@ def generate_contribution_recommendations(
     imported_profile: ImportedProfile | None = None,
     unassigned_only: bool = False,
     scope: str = DEFAULT_SCOPE,
+    filters: ContributionFilters | None = None,
     now: datetime | None = None,
 ) -> tuple[list[IssueRecommendation], str | None]:
     """
@@ -452,26 +624,28 @@ def generate_contribution_recommendations(
     :param imported_profile: optional owned repository profile to exclude
     :param unassigned_only: whether to drop issues that already have an assignee
     :param scope: candidate sourcing scope, discover or saved_starred
+    :param filters: user selected issue filters applied during candidate retrieval
     :param now: optional reference time for deterministic scoring
     :returns: ranked contribution recommendations and an optional degradation warning
     """
     if scope not in CONTRIBUTION_SCOPES:
         raise ValueError(f"Unsupported contribution scope {scope}. Expected one of {', '.join(CONTRIBUTION_SCOPES)}")
     reference = now or datetime.now(timezone.utc)
+    selected = filters or NO_FILTERS
     excluded_owners = {imported_profile.username} if imported_profile else set()
     if scope == SCOPE_SAVED_STARRED:
         sources = select_source_repositories(saved, starred, profile, owner, feedback, excluded_owners, now=reference)
         if not sources:
             return [], None
-        issues, warning = collect_issue_candidates(client, sources)
+        issues, warning = collect_issue_candidates(client, sources, filters=selected)
         repositories = {repository.full_name.lower(): repository for repository in sources}
         issues = exclude_issues(issues, owner, feedback, excluded_owners)
     else:
-        issues, warning = collect_discovery_candidates(client, profile)
+        issues, warning = collect_discovery_candidates(client, profile, filters=selected)
         issues = exclude_issues(issues, owner, feedback, excluded_owners)
         repositories, hydration_warning = hydrate_repositories(client, issues, profile, now=reference)
         warning = warning or hydration_warning
-    candidates = normalize_candidates(issues, repositories, unassigned_only)
+    candidates = normalize_candidates(issues, repositories, unassigned_only, selected)
     ranked = rank_issues(candidates, repositories, profile, max(1, limit), PER_REPOSITORY_LIMIT, reference)
     return ranked, warning
 

@@ -103,7 +103,8 @@ Saved cards show their preference weight and signal count. Repositories with mor
 2. Sync GitHub stars
 3. Select **Find something good**
 4. Save, dismiss, block, or star recommendations
-5. Open **Contribute**, choose a scope, and select **Find an issue to work on**
+5. Open **Contribute**, choose a scope, optionally narrow by **Issue type** and
+   **Contributor-friendly only**, and select **Find an issue to work on**
 6. Review saved repositories and the synchronized starred library
 7. Open Feedback history to undo a previous classification
 
@@ -143,6 +144,9 @@ python -m repo_radar recommend --limit 5
 python -m repo_radar contribute
 python -m repo_radar contribute --limit 5 --unassigned-only
 python -m repo_radar contribute --scope saved-starred
+python -m repo_radar contribute --label bug
+python -m repo_radar contribute --label documentation --contributor-friendly
+python -m repo_radar contribute --label bug --label accessibility --contributor-friendly
 python -m repo_radar feedback owner/repository not-interested
 python -m repo_radar web
 ```
@@ -152,7 +156,7 @@ python -m repo_radar web
 - `sync` refreshes the authenticated user's starred repository cache
 - `profile` prints the merged preference profile and active source counts
 - `recommend` discovers and ranks a fresh set of eligible repositories
-- `contribute` discovers and ranks open contribution opportunities across GitHub; `--scope saved-starred` restricts it to repositories you saved or starred
+- `contribute` discovers and ranks open contribution opportunities across GitHub; `--scope saved-starred` restricts it to repositories you saved or starred, and `--label` / `--contributor-friendly` narrow which issues are retrieved
 - `feedback` records `interested`, `not-interested`, `starred`, or `blocked`
 - `web` starts the local FastAPI interface on `127.0.0.1:8000`
 
@@ -188,6 +192,51 @@ profile, Repo Radar can surface it.
 Both scopes converge on the same normalized issue candidates and the same ranking
 implementation. They differ only in where candidates come from.
 
+### Filtering what gets retrieved
+
+Two independent filters narrow either scope. Both are **retrieval** rules: they change which
+issues are fetched and considered, never how a candidate scores or how it is explained.
+
+**Issue type** — zero or more of `bug`, `documentation`, `enhancement`, `accessibility`.
+
+- no categories selected means **any** category, which is the default behavior;
+- one category requires that label;
+- several categories mean **OR** — an issue needs any one of them, not all of them.
+
+**Contributor-friendly only** — a separate toggle that requires one of `good first issue`,
+`help wanted`, `contributions welcome`, or `up for grabs`. It is independent of issue type;
+you can ask for either, both, or neither.
+
+```bash
+python -m repo_radar contribute --label bug
+python -m repo_radar contribute --label documentation --contributor-friendly
+python -m repo_radar contribute --label bug --label accessibility --contributor-friendly
+```
+
+The web interface offers the same controls as an **Issue type** dropdown, where any
+combination of the four categories can be checked, and a separate **Contributor-friendly
+only** checkbox. Both keep your selection between runs. Only the four
+categories above are accepted; anything else fails at argument parsing (CLI) or with a `400`
+(API).
+
+Selecting `--label bug --label documentation --contributor-friendly` searches for
+
+```text
+label:"bug","documentation" label:"good first issue","help wanted","contributions welcome","up for grabs"
+```
+
+Comma-separated values inside one `label:` qualifier are an **OR**; separate `label:`
+qualifiers are **ANDed**. So that query means *(bug OR documentation) AND (good first issue OR
+help wanted OR contributions welcome OR up for grabs)*, and it costs the same single request
+that an unfiltered search of the same repositories costs. **Selecting more labels never buys
+more Search API requests** — filters are qualifiers on the queries described below, not extra
+queries. They do share the 256-character query budget, so a heavily filtered grouped search
+may cover fewer repositories per request rather than issuing another one.
+
+Results stay personalized and ranked exactly as described under
+[How ranking works](#how-ranking-works). A filter decides what is eligible; your profile
+decides the order.
+
 ### How the default scope finds issues
 
 ```text
@@ -202,13 +251,13 @@ issue + parent repository
 ranked contribution opportunities
 ```
 
-Query generation is a pure function of your profile — signals are sorted by weight then name,
-so the same profile always produces the same searches. Two deliberately different strategies
-run against each of your two strongest languages:
+Query generation is a pure function of your profile and your selected filters — signals are
+sorted by weight then name, so the same inputs always produce the same searches. Two
+deliberately different strategies run against each of your two strongest languages:
 
 - a **relevance** search carrying your strongest topics and description keywords as free text,
-  with **no label qualifier at all**, so a highly relevant unassigned bug or testing issue is
-  reachable without a `good first issue` label;
+  with **no invitation label qualifier**, so a highly relevant unassigned bug or testing issue
+  is reachable without a `good first issue` label;
 - an **invitation** search carrying `good first issue`, `help wanted`, `contributions welcome`,
   and `up for grabs`, with no profile terms, so a project you have never encountered can enter
   the pool on an explicit call for contributors.
@@ -216,6 +265,12 @@ run against each of your two strongest languages:
 Relevance searches are issued first, so a reduced budget always keeps the strategy that is not
 restricted to beginner labels. Terms that merely restate a language the `language:` qualifier
 already carries are dropped, because they narrow nothing and displace a term that would.
+
+Selected issue-type categories are ANDed onto **both** strategies. Turning on
+**Contributor-friendly only** additionally puts the invitation labels on the relevance search,
+because leaving one query unrestricted would return exactly the issues you asked to exclude.
+The two strategies stay distinct either way: one carries your profile terms, the other
+deliberately carries none.
 
 GitHub's issue search returns `repository_url` but no repository language, topics,
 description, popularity, or activity — all of which the repository relevance signal needs. So

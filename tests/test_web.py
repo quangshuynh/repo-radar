@@ -1,10 +1,13 @@
+import re
+
 from fastapi.testclient import TestClient
 
+from repo_radar.contribution import CONTRIBUTION_INVITATION_LABELS, ISSUE_CATEGORIES
 from repo_radar.github_client import GitHubError
 from repo_radar.gitprofilelens import GitProfileLensError
 from repo_radar.models import ImportedProfile, ImportedRepository, Issue, Repository, SeedPreferences
 from repo_radar.storage import Storage
-from repo_radar.web import app
+from repo_radar.web import STATIC_DIRECTORY, app
 
 
 def test_profile_and_empty_recommendation_apis(tmp_path, monkeypatch) -> None:
@@ -683,3 +686,169 @@ def test_contributions_api_needs_profile_signals_for_discovery(tmp_path, monkeyp
     payload = TestClient(app).get("/api/contributions").json()
     assert payload["contributions"] == []
     assert payload["message"] == "No preference signals are available yet"
+
+
+def test_contributions_api_applies_category_and_contributor_friendly_filters(tmp_path, monkeypatch) -> None:
+    """
+    repeated label parameters are one OR group and contributor friendliness is a second group
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+    Storage(tmp_path).save_repositories(
+        [Repository("acme/service", "backend api service", "Python", ["backend", "api"], 900, owner="acme")]
+    )
+    queries = []
+
+    class FilteringGitHubClient:
+        """GitHub client recording the queries the filtered request produced"""
+
+        def get_authenticated_user(self) -> str:
+            """
+            return the mocked authenticated login
+            :returns: authenticated login
+            """
+            return "example"
+
+        def search_issues(self, query: str, limit: int = 50) -> list[Issue]:
+            """
+            record one query and return candidates with and without the selected labels
+            :param query: generated issue search query
+            :param limit: requested result limit
+            :returns: mocked issue candidates
+            """
+            queries.append(query)
+            return [
+                Issue(
+                    repository="acme/service",
+                    number=7,
+                    title="Fix backend api retry handling",
+                    url="https://github.com/acme/service/issues/7",
+                    labels=["bug", "help wanted"],
+                    updated_at="2026-01-01T00:00:00Z",
+                ),
+                Issue(
+                    repository="acme/service",
+                    number=8,
+                    title="Document the backend api",
+                    url="https://github.com/acme/service/issues/8",
+                    labels=["documentation"],
+                    updated_at="2026-01-01T00:00:00Z",
+                ),
+                Issue(
+                    repository="acme/service",
+                    number=9,
+                    title="Refactor the backend api client",
+                    url="https://github.com/acme/service/issues/9",
+                    labels=["enhancement", "help wanted"],
+                    updated_at="2026-01-01T00:00:00Z",
+                ),
+            ]
+
+    monkeypatch.setattr("repo_radar.web.GitHubClient", FilteringGitHubClient)
+    payload = (
+        TestClient(app)
+        .get("/api/contributions?scope=saved_starred&label=bug&label=documentation&contributor_friendly=true")
+        .json()
+    )
+
+    assert payload["labels"] == ["bug", "documentation"]
+    assert payload["contributor_friendly"] is True
+    # one request, not one per selected label
+    assert len(queries) == 1
+    assert 'label:"bug","documentation"' in queries[0]
+    assert 'label:"good first issue","help wanted","contributions welcome","up for grabs"' in queries[0]
+    assert [item["number"] for item in payload["contributions"]] == [7]
+
+
+def test_contributions_api_without_filters_keeps_its_previous_behavior(tmp_path, monkeypatch) -> None:
+    """
+    an unfiltered request carries no label qualifier and reports no selected filters
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+    Storage(tmp_path).save_repositories(
+        [Repository("acme/service", "backend api service", "Python", ["backend", "api"], 900, owner="acme")]
+    )
+    queries = []
+
+    class PlainGitHubClient:
+        """GitHub client recording the queries an unfiltered request produced"""
+
+        def get_authenticated_user(self) -> str:
+            """
+            return the mocked authenticated login
+            :returns: authenticated login
+            """
+            return "example"
+
+        def search_issues(self, query: str, limit: int = 50) -> list[Issue]:
+            """
+            record one query and return one unlabelled candidate
+            :param query: generated issue search query
+            :param limit: requested result limit
+            :returns: mocked issue candidates
+            """
+            queries.append(query)
+            return [
+                Issue(
+                    repository="acme/service",
+                    number=7,
+                    title="Fix backend api retry handling",
+                    url="https://github.com/acme/service/issues/7",
+                    updated_at="2026-01-01T00:00:00Z",
+                )
+            ]
+
+    monkeypatch.setattr("repo_radar.web.GitHubClient", PlainGitHubClient)
+    payload = TestClient(app).get("/api/contributions?scope=saved_starred").json()
+
+    assert payload["labels"] == []
+    assert payload["contributor_friendly"] is False
+    assert queries == ["is:issue is:open archived:false (repo:acme/service)"]
+    assert [item["number"] for item in payload["contributions"]] == [7]
+
+
+def test_contributions_api_rejects_an_unsupported_category(tmp_path, monkeypatch) -> None:
+    """
+    an unsupported category is refused with guidance instead of reaching GitHub
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+
+    class ForbiddenGitHubClient:
+        """GitHub client that fails if an invalid category reaches the pipeline"""
+
+        def __init__(self) -> None:
+            """
+            reject unexpected GitHub client construction
+            :returns: nothing
+            """
+            raise AssertionError("An invalid issue category must never reach GitHub")
+
+    monkeypatch.setattr("repo_radar.web.GitHubClient", ForbiddenGitHubClient)
+    response = TestClient(app).get("/api/contributions?label=security")
+    assert response.status_code == 400
+    assert "Unsupported issue category security" in response.json()["detail"]
+
+
+def test_frontend_offers_exactly_the_supported_issue_categories() -> None:
+    """
+    the web controls cannot drift away from the categories the pipeline accepts
+    :returns: nothing
+    """
+    markup = (STATIC_DIRECTORY / "index.html").read_text(encoding="utf-8")
+    script = (STATIC_DIRECTORY / "app.js").read_text(encoding="utf-8")
+    offered = re.findall(r'name="contribution-label" value="([^"]+)"', markup)
+
+    assert tuple(offered) == ISSUE_CATEGORIES
+    assert 'id="contribution-friendly"' in markup
+    # the invitation labels stay one toggle rather than individual category checkboxes
+    assert all(label not in markup for label in CONTRIBUTION_INVITATION_LABELS)
+    assert 'parameters.append("label"' in script
+    assert "contributor_friendly:" in script

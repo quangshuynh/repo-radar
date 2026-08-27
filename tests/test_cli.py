@@ -1,4 +1,7 @@
-from repo_radar.cli import run_contribute, run_import_profile, run_init, run_profile, run_recommend
+import pytest
+
+from repo_radar.cli import build_parser, run_contribute, run_import_profile, run_init, run_profile, run_recommend
+from repo_radar.contribution import ContributionFilters
 from repo_radar.models import ImportedProfile, ImportedRepository, Issue, Repository, SeedPreferences
 from repo_radar.storage import Storage
 
@@ -239,3 +242,85 @@ def test_contribute_ranks_and_explains_issues_from_followed_repositories(tmp_pat
     assert "Label: help wanted" in output
     assert "Scope signal: Focused" in output
     assert "blocked/repo#1" not in output
+
+
+def test_contribute_parses_repeatable_category_labels_and_the_friendly_flag() -> None:
+    """
+    the filter flags parse into a normalized filter alongside the existing options
+    :returns: nothing
+    """
+    parsed = build_parser().parse_args(
+        [
+            "contribute",
+            "--label",
+            "documentation",
+            "--label",
+            "bug",
+            "--label",
+            "bug",
+            "--contributor-friendly",
+            "--scope",
+            "saved-starred",
+            "--unassigned-only",
+        ]
+    )
+    filters = ContributionFilters.create(parsed.labels, parsed.contributor_friendly)
+    assert parsed.labels == ["documentation", "bug", "bug"]
+    assert parsed.scope == "saved-starred"
+    assert parsed.unassigned_only is True
+    # repetition and click order are normalized away before a query is built
+    assert filters == ContributionFilters(categories=("bug", "documentation"), contributor_friendly=True)
+
+
+def test_contribute_without_filter_flags_keeps_its_previous_behavior() -> None:
+    """
+    the existing command form parses to no filters and the established defaults
+    :returns: nothing
+    """
+    parsed = build_parser().parse_args(["contribute"])
+    assert parsed.labels == []
+    assert parsed.contributor_friendly is False
+    assert parsed.scope == "discover"
+    assert parsed.unassigned_only is False
+    assert ContributionFilters.create(parsed.labels, parsed.contributor_friendly).qualifiers == ()
+
+
+def test_contribute_rejects_an_unsupported_category() -> None:
+    """
+    an unsupported category fails at argument parsing rather than reaching GitHub
+    :returns: nothing
+    """
+    with pytest.raises(SystemExit) as failure:
+        build_parser().parse_args(["contribute", "--label", "security"])
+    assert failure.value.code == 2
+
+
+def test_contribute_filters_reach_the_issue_query(tmp_path, monkeypatch, capsys) -> None:
+    """
+    selected filters become label qualifiers on the same single grouped search
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :param capsys: pytest output capture fixture
+    :returns: nothing
+    """
+    storage = Storage(tmp_path)
+    storage.save_repositories(
+        [Repository("acme/service", "backend automation service", "Python", ["backend"], 900, owner="acme")]
+    )
+    client = ContributionClient()
+    monkeypatch.setattr("repo_radar.cli.GitHubClient", lambda: client)
+
+    exit_code = run_contribute(
+        storage,
+        5,
+        scope="saved_starred",
+        filters=ContributionFilters.create(["bug", "documentation"], contributor_friendly=True),
+    )
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert len(client.queries) == 1
+    assert 'label:"bug","documentation"' in client.queries[0]
+    assert 'label:"good first issue","help wanted","contributions welcome","up for grabs"' in client.queries[0]
+    # the mocked issue carries help wanted but no category label, so nothing survives retrieval
+    assert "No open contribution opportunities were found" in output

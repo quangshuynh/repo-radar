@@ -27,7 +27,11 @@
       <div class="section-heading"><div><p class="eyebrow">Give something back</p><h2>Contribution opportunities</h2><p class="section-intro">Open issues across GitHub ranked by how well they match your profile, including repositories you have not discovered yet.</p></div><button id="refresh-contributions">Find an issue to work on</button></div>
       <div class="filters">
         <fieldset class="scope-choice"><legend>Scope</legend><label class="checkbox"><input type="radio" name="contribution-scope" value="discover" checked> Discover best opportunities</label><label class="checkbox"><input type="radio" name="contribution-scope" value="saved_starred"> Saved &amp; starred only</label></fieldset>
-        <label>Results<input id="contribution-limit" type="number" min="1" max="50" value="10"></label><label class="checkbox"><input id="contribution-unassigned" type="checkbox"> Unassigned only</label>
+        <details id="contribution-labels" class="dropdown">
+          <summary><span class="dropdown-title">Issue type</span><span id="contribution-label-value" class="dropdown-value">Any type</span></summary>
+          <div class="dropdown-panel"><label class="checkbox"><input type="checkbox" name="contribution-label" value="bug"> Bug</label><label class="checkbox"><input type="checkbox" name="contribution-label" value="documentation"> Documentation</label><label class="checkbox"><input type="checkbox" name="contribution-label" value="enhancement"> Enhancement</label><label class="checkbox"><input type="checkbox" name="contribution-label" value="accessibility"> Accessibility</label></div>
+        </details>
+        <label>Results<input id="contribution-limit" type="number" min="1" max="50" value="10"></label><label class="checkbox"><input id="contribution-unassigned" type="checkbox"> Unassigned only</label><label class="checkbox"><input id="contribution-friendly" type="checkbox"> Contributor-friendly only</label>
       </div>
       <p id="contribution-warning" class="inline-message" role="status" aria-live="polite"></p>
       <div id="contributions" class="cards"><div class="recommendation-empty"><p class="empty-title">There is probably an issue here with your name on it.</p><p class="empty">Select “Find an issue to work on” and Repo Radar will search GitHub for open issues shaped by your profile.</p></div></div>

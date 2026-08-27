@@ -3,17 +3,21 @@ from datetime import datetime, timezone
 import pytest
 
 from repo_radar.contribution import (
+    CONTRIBUTION_LABEL_QUALIFIER,
     CONTRIBUTION_SCOPES,
     DEFAULT_SCOPE,
+    ISSUE_CATEGORIES,
     MAX_DISCOVERY_QUERIES,
     MAX_ISSUE_CANDIDATES,
     MAX_REPOSITORY_HYDRATIONS,
     MAX_SOURCE_REPOSITORIES,
+    NO_FILTERS,
     QUERY_CHARACTER_LIMIT,
     REPOSITORY_BATCH_SIZE,
     SCOPE_DISCOVER,
     SCOPE_SAVED_STARRED,
     SEARCH_REQUEST_BUDGET,
+    ContributionFilters,
     build_discovery_queries,
     build_issue_queries,
     collect_issue_candidates,
@@ -631,3 +635,280 @@ def test_discovery_terms_drop_signals_the_language_qualifier_already_asserts() -
     assert "python" not in terms
     assert terms == ["automation", "backend", "retry"]
     assert all('"python"' not in query for query in build_discovery_queries(profile))
+
+
+# ---------------------------------------------------------------------------
+# issue category and contributor friendliness filters
+# ---------------------------------------------------------------------------
+
+
+def _sources(count: int = MAX_SOURCE_REPOSITORIES) -> list[Repository]:
+    """
+    build a bounded set of source repositories
+    :param count: number of repositories
+    :returns: source repositories
+    """
+    return [_repository(f"owner/repository-{index}") for index in range(count)]
+
+
+def test_no_filters_leave_both_scopes_exactly_as_they_were() -> None:
+    """
+    an unfiltered run builds the same queries it built before filtering existed
+    :returns: nothing
+    """
+    grouped = build_issue_queries(_sources())
+    discovery = build_discovery_queries(PROFILE)
+    assert grouped == build_issue_queries(_sources(), NO_FILTERS)
+    assert discovery == build_discovery_queries(PROFILE, MAX_DISCOVERY_QUERIES, NO_FILTERS)
+    assert all(query.startswith("is:issue is:open archived:false (") for query in grouped)
+    # the invitation strategy is preserved by default and is the only labelled discovery query
+    assert [query for query in discovery if "label:" in query] == [
+        query for query in discovery if CONTRIBUTION_LABEL_QUALIFIER in query
+    ]
+    assert NO_FILTERS.qualifiers == ()
+
+
+def test_one_selected_category_requires_that_label() -> None:
+    """
+    a single category becomes one label qualifier ANDed onto the existing query
+    :returns: nothing
+    """
+    queries = build_issue_queries([_repository("owner/repository")], ContributionFilters.create(["bug"]))
+    assert queries == ['is:issue is:open archived:false label:"bug" (repo:owner/repository)']
+
+
+def test_multiple_categories_are_one_or_group_rather_than_several_requirements() -> None:
+    """
+    selecting two categories matches either one instead of demanding both
+    :returns: nothing
+    """
+    filters = ContributionFilters.create(["documentation", "bug"])
+    assert filters.category_qualifier == 'label:"bug","documentation"'
+    # one qualifier, not two, because separate label qualifiers would AND the categories
+    assert filters.qualifiers == ('label:"bug","documentation"',)
+    assert filters.matches(_issue("owner/repository", 1, labels=["documentation"]))
+    assert filters.matches(_issue("owner/repository", 2, labels=["bug"]))
+    assert not filters.matches(_issue("owner/repository", 3, labels=["enhancement"]))
+
+
+def test_category_order_and_duplicates_do_not_change_the_query() -> None:
+    """
+    the same set of categories always normalizes to the same deterministic query text
+    :returns: nothing
+    """
+    clicked = ContributionFilters.create(["accessibility", "BUG", " bug ", "bug", "documentation"])
+    typed = ContributionFilters.create(["documentation", "bug", "accessibility"])
+    assert clicked == typed
+    # canonical declaration order, not selection order
+    assert clicked.categories == ("bug", "documentation", "accessibility")
+    assert build_issue_queries(_sources(1), clicked) == build_issue_queries(_sources(1), typed)
+
+
+def test_contributor_friendly_requires_the_invitation_label_group() -> None:
+    """
+    the contributor friendly filter is the invitation group and nothing else
+    :returns: nothing
+    """
+    filters = ContributionFilters.create(contributor_friendly=True)
+    assert filters.categories == ()
+    assert filters.qualifiers == (CONTRIBUTION_LABEL_QUALIFIER,)
+    query = build_issue_queries([_repository("owner/repository")], filters)[0]
+    assert 'label:"good first issue","help wanted","contributions welcome","up for grabs"' in query
+    assert query.count("label:") == 1
+    assert filters.matches(_issue("owner/repository", 1, labels=["up for grabs"]))
+    assert not filters.matches(_issue("owner/repository", 2, labels=["bug"]))
+
+
+def test_categories_and_contributor_friendliness_are_two_anded_groups() -> None:
+    """
+    combining both filters means any selected category AND any invitation label
+    :returns: nothing
+    """
+    filters = ContributionFilters.create(["bug", "documentation"], contributor_friendly=True)
+    query = build_issue_queries([_repository("owner/repository")], filters)[0]
+    assert query.count("label:") == 2
+    assert query.index('label:"bug","documentation"') < query.index(CONTRIBUTION_LABEL_QUALIFIER)
+    assert filters.matches(_issue("owner/repository", 1, labels=["bug", "help wanted"]))
+    assert not filters.matches(_issue("owner/repository", 2, labels=["bug"]))
+    assert not filters.matches(_issue("owner/repository", 3, labels=["help wanted"]))
+
+
+def test_an_unsupported_category_is_rejected() -> None:
+    """
+    an unknown category fails loudly instead of searching for a label that is not offered
+    :returns: nothing
+    """
+    with pytest.raises(ValueError, match="Unsupported issue category"):
+        ContributionFilters.create(["security"])
+
+
+def test_selected_categories_narrow_both_discovery_strategies() -> None:
+    """
+    a category filter applies to the relevance and the invitation search alike
+    :returns: nothing
+    """
+    queries = build_discovery_queries(PROFILE, MAX_DISCOVERY_QUERIES, ContributionFilters.create(["bug"]))
+    relevance = [query for query in queries if CONTRIBUTION_LABEL_QUALIFIER not in query]
+    invitation = [query for query in queries if CONTRIBUTION_LABEL_QUALIFIER in query]
+    assert queries and all('label:"bug"' in query for query in queries)
+    # neither strategy is dropped: one still carries profile terms, one still carries none
+    assert relevance and invitation
+    assert '"backend"' in relevance[0]
+    assert all('"backend"' not in query for query in invitation)
+
+
+def test_contributor_friendly_discovery_leaves_no_unrestricted_query() -> None:
+    """
+    an explicit contributor friendly filter reaches every discovery query, including relevance
+    :returns: nothing
+    """
+    queries = build_discovery_queries(PROFILE, MAX_DISCOVERY_QUERIES, ContributionFilters.create([], True))
+    assert queries
+    assert all(CONTRIBUTION_LABEL_QUALIFIER in query for query in queries)
+    # the relevance strategy survives the restriction rather than being replaced by it
+    assert any('"backend"' in query for query in queries)
+
+
+def test_selecting_every_filter_buys_no_extra_search_requests() -> None:
+    """
+    label filters are qualifiers on existing queries, never additional queries
+    :returns: nothing
+    """
+    filters = ContributionFilters.create(list(ISSUE_CATEGORIES), contributor_friendly=True)
+    grouped = build_issue_queries(_sources(), filters)
+    discovery = build_discovery_queries(PROFILE, MAX_DISCOVERY_QUERIES, filters)
+    assert len(grouped) <= SEARCH_REQUEST_BUDGET[SCOPE_SAVED_STARRED]
+    assert len(discovery) <= SEARCH_REQUEST_BUDGET[SCOPE_DISCOVER]
+    assert len(grouped) == len(build_issue_queries(_sources()))
+    assert all(len(query) <= QUERY_CHARACTER_LIMIT for query in [*grouped, *discovery])
+
+
+def test_filtered_grouped_queries_stay_within_the_character_limit() -> None:
+    """
+    label qualifiers share the query budget with the repository group instead of overflowing it
+    :returns: nothing
+    """
+    long_names = [_repository(f"a-long-organization-name/a-descriptive-project-{index}") for index in range(10)]
+    filters = ContributionFilters.create(list(ISSUE_CATEGORIES), contributor_friendly=True)
+    queries = build_issue_queries(long_names, filters)
+    searched = [name for query in queries for name in query.split("repo:")[1:]]
+    assert queries
+    assert all(len(query) <= QUERY_CHARACTER_LIMIT for query in queries)
+    assert len(queries) <= SEARCH_REQUEST_BUDGET[SCOPE_SAVED_STARRED]
+    assert all(query.count("repo:") >= 1 for query in queries)
+    # the repositories that no longer fit are the weakest, not an arbitrary subset: source
+    # order is explicit interest then relevance, so coverage is given up from the bottom
+    assert [name.rstrip(") ") for name in searched] == [
+        repository.full_name for repository in long_names[: len(searched)]
+    ]
+
+
+def test_a_filtered_run_costs_the_same_number_of_searches_as_an_unfiltered_one() -> None:
+    """
+    the Search API budget is unchanged by how many categories the user selected
+    :returns: nothing
+    """
+    plain = FakeDiscoveryClient()
+    filtered = FakeDiscoveryClient()
+    generate_contribution_recommendations(plain, PROFILE, [], [], now=NOW)
+    generate_contribution_recommendations(
+        filtered,
+        PROFILE,
+        [],
+        [],
+        filters=ContributionFilters.create(list(ISSUE_CATEGORIES), contributor_friendly=True),
+        now=NOW,
+    )
+    assert filtered.queries
+    assert len(filtered.queries) == len(plain.queries)
+
+
+def test_selected_filters_apply_to_retrieved_candidates() -> None:
+    """
+    a candidate that does not satisfy the selected filters never reaches ranking
+    :returns: nothing
+    """
+    starred = [_repository("owner/repository")]
+    issues = [
+        _issue("owner/repository", 1, labels=["Bug"]),
+        _issue("owner/repository", 2, labels=["enhancement"]),
+        _issue("owner/repository", 3, labels=["documentation", "help wanted"]),
+        _issue("owner/repository", 4),
+    ]
+    categories, _ = generate_contribution_recommendations(
+        FakeIssueClient([issues]),
+        PROFILE,
+        [],
+        starred,
+        scope=SCOPE_SAVED_STARRED,
+        filters=ContributionFilters.create(["bug", "documentation"]),
+        now=NOW,
+    )
+    friendly, _ = generate_contribution_recommendations(
+        FakeIssueClient([issues]),
+        PROFILE,
+        [],
+        starred,
+        scope=SCOPE_SAVED_STARRED,
+        filters=ContributionFilters.create([], contributor_friendly=True),
+        now=NOW,
+    )
+    both, _ = generate_contribution_recommendations(
+        FakeIssueClient([issues]),
+        PROFILE,
+        [],
+        starred,
+        scope=SCOPE_SAVED_STARRED,
+        filters=ContributionFilters.create(["bug"], contributor_friendly=True),
+        now=NOW,
+    )
+    assert sorted(item.issue.number for item in categories) == [1, 3]
+    assert [item.issue.number for item in friendly] == [3]
+    assert both == []
+
+
+def test_filtering_changes_which_issues_are_returned_not_how_they_score() -> None:
+    """
+    filters are a retrieval rule, so a surviving issue reports the score it always had
+    :returns: nothing
+    """
+    starred = [_repository("owner/repository")]
+    issues = [
+        _issue("owner/repository", 1, labels=["bug"], title="Improve postgresql retry handling"),
+        _issue("owner/repository", 2, labels=["enhancement"]),
+    ]
+    unfiltered, _ = generate_contribution_recommendations(
+        FakeIssueClient([issues]), PROFILE, [], starred, scope=SCOPE_SAVED_STARRED, now=NOW
+    )
+    filtered, _ = generate_contribution_recommendations(
+        FakeIssueClient([issues]),
+        PROFILE,
+        [],
+        starred,
+        scope=SCOPE_SAVED_STARRED,
+        filters=ContributionFilters.create(["bug"]),
+        now=NOW,
+    )
+    kept = next(item for item in unfiltered if item.issue.number == 1)
+    assert [item.issue.number for item in filtered] == [1]
+    assert filtered[0].score == kept.score
+    assert filtered[0].reasons == kept.reasons
+
+
+def test_filters_reach_the_discovery_scope_queries() -> None:
+    """
+    the default scope issues filtered queries rather than filtering only after the fact
+    :returns: nothing
+    """
+    client = FakeDiscoveryClient([[_issue("unknown/project", 1, labels=["bug", "help wanted"])]])
+    recommendations, _ = generate_contribution_recommendations(
+        client,
+        PROFILE,
+        [],
+        [],
+        filters=ContributionFilters.create(["bug"], contributor_friendly=True),
+        now=NOW,
+    )
+    assert client.queries and all('label:"bug"' in query for query in client.queries)
+    assert all(CONTRIBUTION_LABEL_QUALIFIER in query for query in client.queries)
+    assert [item.issue.repository for item in recommendations] == ["unknown/project"]

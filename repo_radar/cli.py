@@ -8,8 +8,11 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 
 from .contribution import (
+    CONTRIBUTION_INVITATION_LABELS,
     DEFAULT_SCOPE,
+    ISSUE_CATEGORIES,
     SCOPE_SAVED_STARRED,
+    ContributionFilters,
     generate_contribution_recommendations,
     source_labels,
 )
@@ -46,6 +49,23 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["discover", "saved-starred"],
         default="discover",
         help="discover opportunities across GitHub, or only inside repositories you saved or starred",
+    )
+    contribute.add_argument(
+        "--label",
+        action="append",
+        dest="labels",
+        choices=list(ISSUE_CATEGORIES),
+        metavar="CATEGORY",
+        default=[],
+        help=(
+            f"only issues carrying this label ({', '.join(ISSUE_CATEGORIES)}); "
+            "repeat to match any of several categories"
+        ),
+    )
+    contribute.add_argument(
+        "--contributor-friendly",
+        action="store_true",
+        help=f"only issues labelled {', '.join(CONTRIBUTION_INVITATION_LABELS)}",
     )
     feedback = subparsers.add_parser("feedback", help="classify a recommendation locally")
     feedback.add_argument("repository", help="repository in owner/name form")
@@ -281,13 +301,20 @@ def run_recommend(storage: Storage, limit: int) -> int:
     return 0
 
 
-def run_contribute(storage: Storage, limit: int, unassigned_only: bool = False, scope: str = DEFAULT_SCOPE) -> int:
+def run_contribute(
+    storage: Storage,
+    limit: int,
+    unassigned_only: bool = False,
+    scope: str = DEFAULT_SCOPE,
+    filters: ContributionFilters | None = None,
+) -> int:
     """
     rank and display open contribution opportunities
     :param storage: local storage manager
     :param limit: maximum contribution opportunities
     :param unassigned_only: whether to skip issues that already have an assignee
     :param scope: candidate sourcing scope, discover or saved_starred
+    :param filters: user selected issue category and contributor friendliness filters
     :returns: process exit code
     """
     starred = storage.load_repositories()
@@ -315,6 +342,7 @@ def run_contribute(storage: Storage, limit: int, unassigned_only: bool = False, 
         imported,
         unassigned_only,
         scope,
+        filters,
     )
     print_contributions(recommendations, warning, source_labels(interested, starred))
     return 0
@@ -351,7 +379,13 @@ def main(arguments: list[str] | None = None) -> int:
         if parsed.command == "recommend":
             return run_recommend(storage, parsed.limit)
         if parsed.command == "contribute":
-            return run_contribute(storage, parsed.limit, parsed.unassigned_only, parsed.scope.replace("-", "_"))
+            return run_contribute(
+                storage,
+                parsed.limit,
+                parsed.unassigned_only,
+                parsed.scope.replace("-", "_"),
+                ContributionFilters.create(parsed.labels, parsed.contributor_friendly),
+            )
         if parsed.command == "web":
             return run_web()
         record_feedback(storage, parsed.repository, parsed.classification)
