@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timezone
 
+from .disambiguation import preference_applies, profile_senses, sense_context
 from .models import Issue, IssueRecommendation, PreferenceProfile, Repository
 from .profile import extract_keywords
 from .ranking import _parse_date, _strongest_matches, score_repository
@@ -101,42 +102,79 @@ def normalize_label(value: str) -> str:
     return " ".join(re.split(r"[\s\-_/:]+", value.strip().lower())).strip()
 
 
-def _preference_strength(term: str, profile: PreferenceProfile) -> float:
+def _preference_strength(
+    term: str, profile: PreferenceProfile, senses: dict[str, str], context: frozenset[str]
+) -> float:
     """
     look up how strongly one term matches the preference profile
     :param term: lowercase candidate term
     :param profile: user preference profile
+    :param senses: senses the profile resolves its ambiguous terms to
+    :param context: normalized sense evidence carried by the candidate
     :returns: strongest normalized preference weight for the term
     """
+    if not preference_applies(term, senses, context):
+        return 0.0
     return max(profile.topics.get(term, 0.0), profile.keywords.get(term, 0.0))
 
 
-def _term_score(terms: list[str], profile: PreferenceProfile, limit: int) -> tuple[float, list[str]]:
+def _term_score(
+    terms: list[str], profile: PreferenceProfile, limit: int, senses: dict[str, str], context: frozenset[str]
+) -> tuple[float, list[str]]:
     """
     score bounded term evidence against the preference profile
     :param terms: candidate terms in any order
     :param profile: user preference profile
     :param limit: maximum retained matches
+    :param senses: senses the profile resolves its ambiguous terms to
+    :param context: normalized sense evidence carried by the candidate
     :returns: mean strength of the strongest matches and the matched terms
     """
     unique = dict.fromkeys(terms)
-    matches = _strongest_matches(((term, _preference_strength(term, profile)) for term in unique), limit)
+    matches = _strongest_matches(
+        ((term, _preference_strength(term, profile, senses, context)) for term in unique), limit
+    )
     return sum(score for _, score in matches) / limit, [term for term, score in matches if score > 0]
 
 
-def issue_relevance(issue: Issue, profile: PreferenceProfile) -> tuple[float, list[str]]:
+def issue_sense_context(issue: Issue, repository: Repository | None = None) -> frozenset[str]:
+    """
+    collect the evidence an ambiguous term's sense is read from for one issue
+
+    The owning repository's metadata is included when it is known, because an issue title is
+    short and the repository it lives in is usually the clearest statement of which ecosystem
+    the issue belongs to. Candidate selection reads issues before their repositories are
+    hydrated, so the repository is optional and the issue's own text stands alone there.
+    :param issue: candidate issue
+    :param repository: owning repository when its metadata is available
+    :returns: normalized sense evidence
+    """
+    terms = [normalize_label(label) for label in issue.labels]
+    phrases = [extract_keywords(issue.title), extract_keywords((issue.body or "")[:BODY_CHARACTER_LIMIT])]
+    if repository is not None:
+        terms.extend((*repository.topics, repository.language or ""))
+        phrases.append(extract_keywords(repository.description))
+    return sense_context(terms, phrases)
+
+
+def issue_relevance(
+    issue: Issue, profile: PreferenceProfile, repository: Repository | None = None
+) -> tuple[float, list[str]]:
     """
     score how well an issue itself matches the preference profile
     :param issue: candidate issue
     :param profile: user preference profile
+    :param repository: owning repository when its metadata is available
     :returns: relevance from zero to one and the matched terms
     """
-    title_score, title_terms = _term_score(extract_keywords(issue.title), profile, TITLE_MATCH_LIMIT)
+    senses = profile_senses(profile)
+    context = issue_sense_context(issue, repository)
+    title_score, title_terms = _term_score(extract_keywords(issue.title), profile, TITLE_MATCH_LIMIT, senses, context)
     label_score, label_terms = _term_score(
-        [normalize_label(label) for label in issue.labels], profile, LABEL_MATCH_LIMIT
+        [normalize_label(label) for label in issue.labels], profile, LABEL_MATCH_LIMIT, senses, context
     )
     body_score, body_terms = _term_score(
-        extract_keywords((issue.body or "")[:BODY_CHARACTER_LIMIT]), profile, BODY_MATCH_LIMIT
+        extract_keywords((issue.body or "")[:BODY_CHARACTER_LIMIT]), profile, BODY_MATCH_LIMIT, senses, context
     )
     score = (
         TITLE_RELEVANCE_WEIGHT * title_score + LABEL_RELEVANCE_WEIGHT * label_score + BODY_RELEVANCE_WEIGHT * body_score
@@ -248,7 +286,9 @@ def issue_priority(issue: Issue, profile: PreferenceProfile, now: datetime | Non
     This is the selection heuristic that decides which repositories are worth one bounded
     hydration request each. It is deliberately the production issue score with the
     repository relevance term omitted rather than a second set of weights, so the ordering
-    it produces cannot drift away from the ordering that is finally reported.
+    it produces cannot drift away from the ordering that is finally reported. An ambiguous
+    term is therefore disambiguated here too, from the issue's own text alone, which is all
+    the evidence that exists before hydration.
 
     This value is never surfaced. Only `score_issue` produces a reported score.
     :param issue: candidate issue
@@ -282,7 +322,7 @@ def score_issue(
     """
     reference = now or datetime.now(timezone.utc)
     repository_score, repository_explanation = score_repository(repository, profile, reference)
-    relevance, relevant_terms = issue_relevance(issue, profile)
+    relevance, relevant_terms = issue_relevance(issue, profile, repository)
     friendliness, friendliness_evidence = contribution_friendliness(issue)
     fresh, freshness_evidence = freshness(issue, reference)
     readiness, readiness_evidence = scope_readiness(issue)

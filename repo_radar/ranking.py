@@ -6,6 +6,7 @@ import math
 from collections.abc import Iterable
 from datetime import datetime, timezone
 
+from .disambiguation import contextual_weight, profile_senses, sense_context
 from .models import PreferenceProfile, Recommendation, Repository
 from .profile import extract_keywords
 
@@ -103,22 +104,42 @@ def _novelty_penalty(repository: Repository, selected: list[Recommendation]) -> 
     return _redundancy_penalty(max(similarities, default=0.0))
 
 
+def repository_sense_context(repository: Repository) -> frozenset[str]:
+    """
+    collect the evidence an ambiguous term's sense is read from for one repository
+    :param repository: candidate repository
+    :returns: normalized sense evidence
+    """
+    return sense_context((*repository.topics, repository.language or ""), (extract_keywords(repository.description),))
+
+
 def score_repository(
     repository: Repository, profile: PreferenceProfile, now: datetime | None = None
 ) -> tuple[float, str]:
     """
     calculate a candidate relevance score and explanation
+
+    Topic and keyword weights are looked up through `contextual_weight`, so a preference for
+    a term that names two unrelated ecosystems is credited only to candidates meaning the
+    sense the profile means. See `disambiguation.py`; every unambiguous term is unaffected.
     :param repository: candidate repository
     :param profile: user preference profile
     :param now: optional reference time for deterministic scoring
     :returns: raw score and explanation
     """
+    senses = profile_senses(profile)
+    context = repository_sense_context(repository)
     topics = dict.fromkeys(topic.lower() for topic in repository.topics)
-    topic_matches = _strongest_matches(((topic, profile.topics.get(topic, 0.0)) for topic in topics), TOPIC_MATCH_LIMIT)
+    topic_matches = _strongest_matches(
+        ((topic, contextual_weight(topic, profile.topics, senses, context)) for topic in topics), TOPIC_MATCH_LIMIT
+    )
     topic_score = sum(score for _, score in topic_matches) / TOPIC_MATCH_LIMIT
     language_score = profile.languages.get(repository.language or "", 0.0)
     keyword_matches = _strongest_matches(
-        ((word, profile.keywords.get(word, 0.0)) for word in set(extract_keywords(repository.description))),
+        (
+            (word, contextual_weight(word, profile.keywords, senses, context))
+            for word in set(extract_keywords(repository.description))
+        ),
         KEYWORD_MATCH_LIMIT,
     )
     keyword_score = sum(score for _, score in keyword_matches) / KEYWORD_MATCH_LIMIT
