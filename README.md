@@ -171,6 +171,34 @@ Web searches build targeted queries within the selected language, combining the 
 
 The ranking system uses weighted counts and readable heuristics rather than embeddings, language models, or opaque machine-learning models.
 
+### Terms that name two different things
+
+Preference matching is string equality, which is wrong for the handful of terms that name
+two unrelated ecosystems. `homebrew` is the motivating one: it means both console homebrew
+development (Nintendo Switch, 3DS, Wii, Vita) and the macOS package manager, so a profile
+built from Switch projects used to credit brew tap and formula issues with the full weight
+of its strongest topic.
+
+`repo_radar/disambiguation.py` resolves such a term to a sense before its weight is applied,
+on both sides. A sense is assigned only when unambiguous companion signals corroborate it —
+`nintendo-switch`, `libnx`, `devkitpro`, `3ds` on one side; `macos`, `tap`, `formula`,
+`package-manager` on the other — and the ambiguous word itself is never evidence for its own
+reading. The weight is then credited unless the profile clearly means one sense and the
+candidate clearly means the other.
+
+Three properties keep this from behaving like a blacklist:
+
+- a mismatch **withholds** the term's contribution instead of subtracting a penalty, so no
+  candidate is ever scored below an otherwise identical one that never used the term;
+- a macOS Homebrew repository keeps that contribution in full for a user whose own profile
+  reads as macOS Homebrew;
+- evidence that is absent, or that corroborates both senses equally, leaves the term
+  undetermined and scoring unchanged, so genuinely ambiguous data is never classified.
+
+Every other term is looked up exactly as before, and the decision is deterministic and
+visible in the recommendation's evidence: a term whose sense did not match simply does not
+appear in the explanation, because it did not score.
+
 ## Contribution discovery
 
 The **Contribute** view answers a different question from Discover: not *which repositories

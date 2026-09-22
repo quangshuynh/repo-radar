@@ -25,6 +25,7 @@ Read `AGENTS.md` and `CONTEXT.md` before implementation.
 | Repository and issue domain models | `repo_radar/models.py` |
 | Repository candidate discovery and exclusions | `repo_radar/discovery.py` |
 | Repository scoring, novelty, duplicate suppression | `repo_radar/ranking.py` |
+| Sense disambiguation of ambiguous preference terms | `repo_radar/disambiguation.py` |
 | Issue candidate selection and API bounding | `repo_radar/contribution.py` |
 | Issue scoring **and** explanation generation | `repo_radar/issue_ranking.py` |
 | Local JSON persistence | `repo_radar/storage.py` |
@@ -44,6 +45,10 @@ Architecture boundaries to respect:
 - `issue_ranking.py` imports `_parse_date` and `_strongest_matches` from `ranking.py`. That
   cross-module private reuse is the existing convention (`heldout_evaluation.py` does the
   same) and exists so deterministic evidence ordering is defined in exactly one place.
+- `disambiguation.py` owns the vocabulary of terms that name two unrelated ecosystems and
+  the markers that resolve them. Both rankers consult it; neither defines senses of its own.
+  It withholds a term's weight on a sense mismatch and never subtracts a penalty, so it
+  cannot be used as a blacklist.
 
 ## GitHub API caveats learned here
 
@@ -73,6 +78,9 @@ When modifying ranking:
 - distinguish raw relevance score from novelty/diversity adjustments;
 - test ordering invariants rather than freezing arbitrary float internals;
 - explain mathematically why a ranking change is justified;
+- disambiguate an ambiguous term rather than blacklisting it: resolve a sense only from
+  unambiguous companion markers, leave undetermined evidence alone, and withhold rather
+  than penalize (see `disambiguation.py`);
 - compare evaluation before/after when evaluation infrastructure exists.
 
 A metric improvement is not sufficient by itself. Explain the behavior that improved and the tradeoff introduced.
