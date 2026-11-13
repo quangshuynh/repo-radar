@@ -54,4 +54,35 @@ jobs:
         run: python -m ruff format --check .
 
       - name: Check frontend JavaScript syntax
-        run: node --check repo_radar/static/app.js
+        run: |
+          node --check repo_radar/static/app.js
+          node --check repo_radar/static/ui.js
+
+  interface:
+    name: Interface in Chromium
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies and Chromium
+        run: |
+          python -m pip install -r requirements.txt -e ".[ui]"
+          python -m playwright install --with-deps chromium
+
+      # REPO_RADAR_REQUIRE_UI_TESTS turns a missing browser into a failure instead of a skip,
+      # so this job cannot pass without actually driving the interface.
+      - name: Run interface tests
+        env:
+          REPO_RADAR_REQUIRE_UI_TESTS: "1"
+        run: python -m pytest tests/ui
