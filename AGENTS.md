@@ -36,6 +36,7 @@ python -m pytest
 python -m ruff check .
 python -m ruff format --check .
 node --check repo_radar/static/app.js
+node --check repo_radar/static/ui.js
 python -m repo_radar.evaluation
 python -m repo_radar.heldout_evaluation
 python -m repo_radar.contribution_evaluation

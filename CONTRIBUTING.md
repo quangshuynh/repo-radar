@@ -22,6 +22,16 @@ python -m repo_radar.evaluation
 python -m ruff check .
 python -m ruff format --check .
 node --check repo_radar/static/app.js
+node --check repo_radar/static/ui.js
+```
+
+Interface changes should also pass the browser tests and refresh the README screenshots:
+
+```bash
+python -m pip install -e ".[ui]"
+python -m playwright install chromium
+python -m pytest tests/ui
+python tests/ui/capture_screenshots.py
 ```
 
 Changes to ranking behavior should report the before and after evaluation output and, when the change is intended, refresh the baseline with `python -m repo_radar.evaluation --write-baseline`. See [evaluation/README.md](evaluation/README.md).

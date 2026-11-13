@@ -6,7 +6,7 @@ Repo Radar is a private, local-first GitHub discovery tool. It learns what kinds
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/license-MIT-c56a3d.svg)](LICENSE)
 
-![Repo Radar local interface](docs/screenshot.png)
+![Repo Radar's Discover section ranking TypeScript repositories against a local profile](docs/screenshot.png)
 
 ## Features
 
@@ -99,18 +99,40 @@ Saved cards show their preference weight and signal count. Repositories with mor
 
 ## Web workflow
 
-1. Add manual preferences or import a public GitProfileLens profile
-2. Sync GitHub stars
-3. Select **Find something good**
-4. Save, dismiss, block, or star recommendations
-5. Open **Contribute**, choose a scope, optionally narrow by **Issue type** and
-   **Contributor-friendly only**, and select **Find an issue to work on**
-6. Review saved repositories and the synchronized starred library
-7. Open Feedback history to undo a previous classification
+The local interface is organized into six sections. They sit in a sidebar on desktop, an icon
+rail on tablets, and a menu on phones. Each section is a browser history entry, so Back and
+Forward move between them.
+
+| Section | What it holds |
+| --- | --- |
+| **Overview** | Local counts, the latest results from this browser session, a profile and feedback summary, and the way into Discover and Contribute |
+| **Discover** | Repository search with the resolved language shown as you type, star range and result filters, and ranked results with their score and explanation |
+| **Contribute** | Issue search across GitHub or only your saved and starred repositories, issue type and contributor filters, and each issue's evidence grouped by signal |
+| **Library** | Saved and Starred tabs with filtering and sorting, starring one saved repository or a confirmed batch, and removal |
+| **Preferences** | Manual interests, GitProfileLens import, the weight of every preference source, and the current profile |
+| **Feedback history** | Every saved, starred, dismissed, and blocked repository, what that classification does, and a way to clear it |
+
+A first run usually looks like this:
+
+1. Add interests or import a public GitProfileLens profile in **Preferences**
+2. Select **Sync stars** at the bottom of the sidebar
+3. Search in **Discover**, then save, dismiss, block, or star results
+4. Open **Contribute**, choose where to look and which issue types you want, and select **Find issues**
+5. Review **Library**, and clear earlier decisions in **Feedback history**
+
+How actions behave:
+
+- **Save**, **Not for me**, and **Block** apply immediately and offer **Undo**.
+- **Star on GitHub**, **Star all on GitHub**, **Remove**, **Remove all**, and clearing a history
+  record ask for confirmation first. A success message appears only after the server confirms
+  the change; for stars, that means GitHub accepted it.
+- Press <kbd>/</kbd> anywhere to jump to the repository search.
+- Search text, filters, and the selected Library tab are remembered by this browser. The latest
+  results are kept for the browser session. Neither leaves the machine.
 
 ### Search
 
-The Discover panel's **Search** box selects the language before ranking runs. Every search resolves to exactly one language:
+The **Discover** search box selects the language before ranking runs, and the line under it shows the language your query resolves to as you type, using the same parser as the search itself. Every search resolves to exactly one language:
 
 1. Repo Radar looks for a programming language named in the query
 2. If none is named — including an empty box — the language is Python
@@ -131,6 +153,24 @@ A language name is recognized anywhere in the query, except for short abbreviati
 Sync reconciles the local Saved list with GitHub. If you star a saved repository outside Repo Radar, the next sync removes it from Saved and records it as starred locally.
 
 Clearing blocked or dismissed feedback makes that repository eligible for discovery again. Clearing interested feedback also removes the repository from Saved. Clearing a starred feedback record does not unstar it on GitHub or remove it from the synchronized starred cache.
+
+### Screenshots
+
+These are captured from the running application by `python tests/ui/capture_screenshots.py`,
+which serves the real interface and ranking pipeline with GitHub answered from the frozen public
+snapshots under `evaluation/`. They show no personal data.
+
+| Overview | Contribute |
+| --- | --- |
+| ![Overview with local counts, latest results, and profile summary](docs/screenshots/overview-desktop.png) | ![Contribute results with grouped evidence for each issue](docs/screenshots/contribute-desktop.png) |
+
+| Library | Preferences | Feedback history |
+| --- | --- | --- |
+| ![Library with saved repositories and bulk actions](docs/screenshots/library-desktop.png) | ![Preferences with manual interests, import, and source weights](docs/screenshots/preferences-desktop.png) | ![Feedback history grouped by classification](docs/screenshots/history-desktop.png) |
+
+| Tablet | Phone | Phone navigation |
+| --- | --- | --- |
+| ![Discover on a tablet with the icon rail](docs/screenshots/discover-tablet.png) | ![Contribute results on a phone](docs/screenshots/contribute-phone.png) | ![Navigation menu on a phone](docs/screenshots/navigation-phone.png) |
 
 ## Command-line usage
 
@@ -360,6 +400,11 @@ update recency. The scope signal (`Focused`, `Unclear`, or `Needs discussion`) r
 evidence and is deliberately descriptive. Repo Radar does not estimate difficulty or effort,
 and it uses no language model, embedding, or learned ranker.
 
+Each recommendation also carries the same statements grouped by the signal that produced
+them (`repository`, `relevance`, `friendliness`, `freshness`, `assignment`). The grouping is
+built in `issue_ranking.score_issue`, and the flat list is derived from it, so the interface
+can show the evidence per signal without composing any explanation of its own.
+
 ### GitHub API behavior and limits
 
 Issue search uses the GitHub Search API, which is limited to **30 authenticated requests per
@@ -472,6 +517,8 @@ Private application state is stored as JSON under `data/`:
 
 The `data/` directory and `.env` are ignored by Git. The web server binds only to `127.0.0.1`. Data is sent only to GitHub and, when requested, GitProfileLens. Repo Radar has no telemetry, analytics, cloud database, background worker, or third-party recommendation service.
 
+The interface bundles its fonts and icons, so the page loads nothing from a third-party server. The status API reports only whether a GitHub token is configured, never the token itself. The browser keeps search filters in `localStorage` and the latest results in `sessionStorage`; both stay in that browser.
+
 ## Development
 
 Run the complete validation suite:
@@ -481,9 +528,33 @@ python -m pytest
 python -m ruff check .
 python -m ruff format --check .
 node --check repo_radar/static/app.js
+node --check repo_radar/static/ui.js
 ```
 
 Tests mock GitHub and GitProfileLens requests. They do not call either live service.
+
+The interface tests in `tests/ui/` drive the real application in headless Chromium at desktop,
+tablet, and phone sizes. They cover navigation, responsive layout, search and filter behavior,
+confirmations, Undo, feedback history, preferences, keyboard access, and reduced motion. They
+run as part of `python -m pytest` once Playwright is installed, and are skipped otherwise:
+
+```bash
+python -m pip install -e ".[ui]"
+python -m playwright install chromium
+```
+
+Refresh the README screenshots after an interface change with:
+
+```bash
+python tests/ui/capture_screenshots.py
+```
+
+The frontend is plain HTML, CSS, and JavaScript with no build step. `static/tokens.css` defines
+every color, type size, space, radius, and timing; `static/styles.css` builds components from
+those tokens; `static/ui.js` holds shared components such as buttons, toasts, and the
+confirmation dialog; `static/app.js` holds routing and the six sections. Icons come from
+[Lucide](https://lucide.dev) as one sprite, regenerated with `scripts/build_icon_sprite.py`, and
+the Geist typefaces are bundled under the SIL Open Font License.
 
 To inspect local coverage without enforcing an arbitrary threshold:
 
@@ -506,8 +577,7 @@ Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup and
 ## Roadmap
 
 - Label the frozen contribution corpus and freeze the first issue-ranking quality baseline
-- Improve recommendation explanations with per-signal score details
-- Add sorting and filtering to the starred library
+- Improve repository recommendation explanations with per-signal score details
 - Add pagination for large saved and starred collections
 - Add profile-source controls without creating a second profile format
 - Package the application for simpler installation
