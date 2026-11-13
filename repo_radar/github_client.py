@@ -34,6 +34,18 @@ class GitHubError(RuntimeError):
         self.status = status
 
 
+def token_configured() -> bool:
+    """
+    report whether a GitHub token is available, using the same sources as `GitHubClient`
+
+    Only presence is reported. The token itself is never returned, so a status surface can say
+    whether GitHub actions will be attempted without handling the credential.
+    :returns: whether a GitHub token is configured
+    """
+    load_dotenv(override=False)
+    return bool(os.environ.get("GITHUB_TOKEN"))
+
+
 class GitHubClient:
     """perform authenticated requests against the GitHub REST API"""
 

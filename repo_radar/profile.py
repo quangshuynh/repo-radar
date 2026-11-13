@@ -14,6 +14,17 @@ OWNED_REPOSITORY_WEIGHT = 0.35
 SEED_SIGNAL_WEIGHT = 0.6
 INTERESTED_REPOSITORY_WEIGHT = 0.7
 
+# Every preference source and the weight one of its signals contributes, strongest first.
+# Surfaces read this instead of restating the constants above, so a displayed weight cannot
+# drift from the one `build_profile` applies.
+PREFERENCE_SOURCE_WEIGHTS: tuple[tuple[str, str, float], ...] = (
+    ("starred", "Starred repository", STARRED_REPOSITORY_WEIGHT),
+    ("pinned", "Pinned GitProfileLens repository", PINNED_REPOSITORY_WEIGHT),
+    ("interested", "Saved repository", INTERESTED_REPOSITORY_WEIGHT),
+    ("seed", "Manual interest", SEED_SIGNAL_WEIGHT),
+    ("owned", "Other active GitProfileLens repository", OWNED_REPOSITORY_WEIGHT),
+)
+
 STOP_WORDS = {
     "a",
     "an",

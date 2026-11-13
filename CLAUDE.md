@@ -31,12 +31,17 @@ Read `AGENTS.md` and `CONTEXT.md` before implementation.
 | Local JSON persistence | `repo_radar/storage.py` |
 | HTTP surface | `repo_radar/web.py` |
 | Terminal surface | `repo_radar/cli.py` |
-| Frontend | `repo_radar/static/{index.html,app.js,styles.css}` |
+| Frontend shell and sections | `repo_radar/static/{index.html,app.js}` |
+| Frontend components and design tokens | `repo_radar/static/{ui.js,tokens.css,styles.css}` |
+| Browser tests, fixture harness, screenshots | `tests/ui/` |
 
 Architecture boundaries to respect:
 
 - `web.py` and `cli.py` are thin. Both call `generate_contribution_recommendations` and format
   the result; neither may reimplement scoring, filtering, or explanation text.
+- The frontend formats what the API returns. It shows server scores, explanations, and grouped
+  issue evidence as given, and reads the search language and source weights from the API rather
+  than restating them. Colors, sizes, and timings come from `tokens.css`, never literals.
 - Explanations are produced in `issue_ranking.score_issue` alongside the score that justifies
   them, so the two cannot drift. Do not compose reason strings in the web or CLI layer.
 - All GitHub traffic goes through `GitHubClient`. Do not add a second HTTP path.
@@ -102,10 +107,16 @@ python -m pytest
 python -m ruff check .
 python -m ruff format --check .
 node --check repo_radar/static/app.js
+node --check repo_radar/static/ui.js
 python -m repo_radar.evaluation
 python -m repo_radar.heldout_evaluation
 python -m repo_radar.contribution_evaluation
 ```
+
+Browser tests in `tests/ui/` run with `python -m pytest` when Playwright and Chromium are
+installed (`pip install -e ".[ui]"`, `python -m playwright install chromium`). After an interface
+change, refresh the README screenshots with `python tests/ui/capture_screenshots.py`; it uses
+frozen public fixtures, never the personal `data/` directory or a token.
 
 When a change is not meant to affect repository ranking, prove it: capture
 `python -m repo_radar.evaluation` output, `git stash` the change, capture it again, and diff.

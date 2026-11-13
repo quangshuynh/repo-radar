@@ -1,0 +1,118 @@
+/*
+ * Repo Radar design tokens.
+ *
+ * Every color, type size, space, radius, and timing used by styles.css is defined here.
+ * Components reference these custom properties instead of literal values, so the interface
+ * can be retuned in one place. Fonts are bundled locally; nothing is fetched from a third party.
+ */
+
+@font-face {
+  font-family: "Geist";
+  src: url("/static/fonts/Geist-latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/static/fonts/GeistMono-latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* surfaces: a warm near-black canvas with two raised steps */
+  --color-canvas: #100f0e;
+  --color-surface: #181614;
+  --color-surface-raised: #1f1c1a;
+  --color-surface-hover: #282522;
+  --color-line: #2a2725;
+  --color-line-strong: #3d3a39;
+
+  /* text: warm white with two quieter steps, all at least 4.5:1 on the canvas */
+  --color-text: #eeebe7;
+  --color-text-muted: #aaa49f;
+  --color-text-subtle: #8f8884;
+
+  /* signal orange marks focus, the active section, and score meters; it never fills a button */
+  --color-accent: #ef6c2b;
+  --color-accent-text: #f58a52;
+  --color-accent-soft: rgb(239 108 43 / 13%);
+
+  /* status colors are muted so they read as information, not decoration */
+  --color-positive: #9fc78f;
+  --color-positive-soft: rgb(159 199 143 / 12%);
+  --color-warning: #dcae68;
+  --color-warning-soft: rgb(220 174 104 / 12%);
+  --color-danger: #e7836f;
+  --color-danger-soft: rgb(231 131 111 / 12%);
+
+  /* the primary action is the one light object on a dark page */
+  --color-inverse: #f2efeb;
+  --color-inverse-hover: #ffffff;
+  --color-inverse-text: #141210;
+
+  --color-focus: var(--color-accent);
+  --color-scrim: rgb(5 5 4 / 72%);
+
+  /* type */
+  --font-sans: "Geist", "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "Geist Mono", "JetBrains Mono", "Cascadia Code", "SF Mono", ui-monospace, Consolas, monospace;
+  --text-2xs: 0.6875rem; /* 11px */
+  --text-xs: 0.75rem; /* 12px */
+  --text-sm: 0.8125rem; /* 13px */
+  --text-base: 0.875rem; /* 14px */
+  --text-md: 1rem; /* 16px */
+  --text-lg: 1.25rem; /* 20px */
+  --text-xl: 1.75rem; /* 28px */
+  --text-2xl: 2.25rem; /* 36px */
+  --leading-tight: 1.15;
+  --leading-snug: 1.35;
+  --leading-normal: 1.5;
+  --tracking-tight: -0.015em;
+  --tracking-display: -0.03em;
+  --weight-regular: 400;
+  --weight-medium: 500;
+
+  /* space: a 4px base step */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* radius grows with the size of the object: controls, rows, panels */
+  --radius-xs: 3px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+
+  /* motion: short and mechanical */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+
+  /* layout */
+  --sidebar-width: 15rem;
+  --rail-width: 5rem;
+  --content-max: 70rem;
+  --control-height: 2.25rem;
+  --control-height-sm: 1.875rem;
+  --control-height-lg: 2.75rem;
+  --touch-target: 2.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+  }
+}

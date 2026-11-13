@@ -318,6 +318,8 @@ class IssueRecommendation:
     reasons: list[str] = field(default_factory=list)
     scope_signal: str = "Unclear"
     scope_evidence: list[str] = field(default_factory=list)
+    # the same statements as `reasons`, grouped by the scoring signal that produced each one
+    evidence: dict[str, list[str]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)

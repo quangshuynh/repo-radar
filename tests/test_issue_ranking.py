@@ -1,6 +1,12 @@
 from datetime import datetime, timezone
 
 from repo_radar.issue_ranking import (
+    EVIDENCE_ASSIGNMENT,
+    EVIDENCE_FRESHNESS,
+    EVIDENCE_FRIENDLINESS,
+    EVIDENCE_GROUPS,
+    EVIDENCE_RELEVANCE,
+    EVIDENCE_REPOSITORY,
     normalize_label,
     rank_issues,
     score_issue,
@@ -249,3 +255,44 @@ def test_issues_without_a_known_source_repository_are_dropped() -> None:
     """
     ranked = rank_issues([_issue(1, "Improve retry handling")], {}, BACKEND_PROFILE, now=NOW)
     assert ranked == []
+
+
+def test_grouped_evidence_is_the_flat_explanation_split_by_signal() -> None:
+    """
+    every explanation statement belongs to exactly one signal group, in the reported order
+    :returns: nothing
+    """
+    issue = _issue(
+        11,
+        "Add retry handling to the backend api client",
+        labels=["good first issue", "help wanted"],
+        assignee_count=1,
+        body="Steps to reproduce: call the client while the backend restarts. " * 3,
+    )
+    recommendation = score_issue(issue, _backend_repository(), BACKEND_PROFILE, NOW)
+    evidence = recommendation.evidence
+
+    assert list(evidence) == list(EVIDENCE_GROUPS)
+    flattened = [
+        *(f"acme/service: {item}" for item in evidence[EVIDENCE_REPOSITORY]),
+        *(item for group in EVIDENCE_GROUPS[1:] for item in evidence[group]),
+    ]
+    assert flattened == recommendation.reasons
+    assert evidence[EVIDENCE_REPOSITORY] and evidence[EVIDENCE_REPOSITORY][0].startswith("strong match for")
+    assert evidence[EVIDENCE_RELEVANCE] == [next(r for r in recommendation.reasons if r.startswith("Issue mentions"))]
+    assert "Label: good first issue" in evidence[EVIDENCE_FRIENDLINESS]
+    assert evidence[EVIDENCE_FRESHNESS] == ["Updated 4 days ago"]
+    assert evidence[EVIDENCE_ASSIGNMENT] == ["Assigned to 1, so it may already be in progress"]
+
+
+def test_grouped_evidence_leaves_unscored_signals_empty() -> None:
+    """
+    a signal that contributed nothing to the score contributes no grouped evidence either
+    :returns: nothing
+    """
+    issue = _issue(12, "Rewrite the illustration palette", repository="studio/gallery", updated_at=None)
+    recommendation = score_issue(issue, _unrelated_repository(), BACKEND_PROFILE, NOW)
+
+    assert recommendation.evidence[EVIDENCE_RELEVANCE] == []
+    assert recommendation.evidence[EVIDENCE_FRESHNESS] == []
+    assert recommendation.evidence[EVIDENCE_ASSIGNMENT] == []

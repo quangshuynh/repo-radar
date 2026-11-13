@@ -28,6 +28,22 @@ FRIENDLINESS_WEIGHT = 0.15
 FRESHNESS_WEIGHT = 0.10
 READINESS_WEIGHT = 0.10
 
+# Names of the evidence groups attached to every scored issue. Each group holds only statements
+# produced by the signal it is named after; scope readiness evidence is reported separately as
+# `scope_evidence` alongside its scope signal.
+EVIDENCE_REPOSITORY = "repository"
+EVIDENCE_RELEVANCE = "relevance"
+EVIDENCE_FRIENDLINESS = "friendliness"
+EVIDENCE_FRESHNESS = "freshness"
+EVIDENCE_ASSIGNMENT = "assignment"
+EVIDENCE_GROUPS = (
+    EVIDENCE_REPOSITORY,
+    EVIDENCE_RELEVANCE,
+    EVIDENCE_FRIENDLINESS,
+    EVIDENCE_FRESHNESS,
+    EVIDENCE_ASSIGNMENT,
+)
+
 # Issue relevance sub-weights. The title is the most reliable statement of what an issue is
 # about; labels are curated but coarse; the body is noisy and frequently templated.
 TITLE_RELEVANCE_WEIGHT = 0.55
@@ -333,15 +349,25 @@ def score_issue(
         + FRESHNESS_WEIGHT * fresh
         + READINESS_WEIGHT * readiness
     )
-    reasons: list[str] = []
-    if repository_score > 0:
-        reasons.append(f"{repository.full_name}: {repository_explanation}")
-    if relevant_terms:
-        reasons.append(f"Issue mentions {', '.join(relevant_terms)}")
-    reasons.extend(friendliness_evidence)
-    reasons.extend(freshness_evidence)
-    if issue.assignee_count:
-        reasons.append(f"Assigned to {issue.assignee_count}, so it may already be in progress")
+    # Evidence is grouped by the signal that produced it so an interface can show which part
+    # of the score each statement supports. The flat `reasons` list is derived from these same
+    # groups in a fixed order, so the grouped and flat explanations cannot disagree.
+    evidence: dict[str, list[str]] = {
+        EVIDENCE_REPOSITORY: [repository_explanation] if repository_score > 0 else [],
+        EVIDENCE_RELEVANCE: [f"Issue mentions {', '.join(relevant_terms)}"] if relevant_terms else [],
+        EVIDENCE_FRIENDLINESS: list(friendliness_evidence),
+        EVIDENCE_FRESHNESS: list(freshness_evidence),
+        EVIDENCE_ASSIGNMENT: (
+            [f"Assigned to {issue.assignee_count}, so it may already be in progress"] if issue.assignee_count else []
+        ),
+    }
+    reasons = [
+        *(f"{repository.full_name}: {item}" for item in evidence[EVIDENCE_REPOSITORY]),
+        *evidence[EVIDENCE_RELEVANCE],
+        *evidence[EVIDENCE_FRIENDLINESS],
+        *evidence[EVIDENCE_FRESHNESS],
+        *evidence[EVIDENCE_ASSIGNMENT],
+    ]
     return IssueRecommendation(
         issue=issue,
         repository=repository,
@@ -349,6 +375,7 @@ def score_issue(
         reasons=reasons,
         scope_signal=_scope_signal(readiness, issue),
         scope_evidence=readiness_evidence,
+        evidence=evidence,
     )
 
 

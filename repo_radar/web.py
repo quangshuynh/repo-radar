@@ -22,10 +22,10 @@ from .contribution import (
 )
 from .discovery import generate_recommendations
 from .feedback import reconcile_starred_repositories, record_feedback
-from .github_client import GitHubClient, GitHubError
+from .github_client import GitHubClient, GitHubError, token_configured
 from .gitprofilelens import GitProfileLensError, import_profile
-from .models import IssueRecommendation, Recommendation, Repository, SeedPreferences
-from .profile import INTERESTED_REPOSITORY_WEIGHT, build_profile, extract_keywords
+from .models import IssueRecommendation, Recommendation, Repository, SearchQuery, SeedPreferences
+from .profile import INTERESTED_REPOSITORY_WEIGHT, PREFERENCE_SOURCE_WEIGHTS, build_profile, extract_keywords
 from .search import parse_search_query
 from .storage import Storage
 
@@ -152,9 +152,19 @@ def _contribution_data(recommendation: IssueRecommendation, sources: dict[str, s
         "source": sources.get(issue.repository.lower(), "new"),
         "score": round(recommendation.score, 4),
         "reasons": recommendation.reasons,
+        "evidence": recommendation.evidence,
         "scope_signal": recommendation.scope_signal,
         "scope_evidence": recommendation.scope_evidence,
     }
+
+
+def _search_data(search: SearchQuery) -> dict[str, object]:
+    """
+    serialize how a search query was resolved, so a surface can show the language it implies
+    :param search: parsed search intent
+    :returns: resolved language, whether it was named explicitly, and the topical terms
+    """
+    return {"language": search.language, "explicit_language": search.explicit_language, "terms": list(search.terms)}
 
 
 def _interested_data(repository: Repository) -> dict[str, object]:
@@ -260,6 +270,10 @@ def create_app() -> FastAPI:
             "imported_count": len(imported.repositories) if imported else 0,
             "feedback_count": len(storage.load_feedback()),
             "interested_count": len(interested),
+            "source_weights": [
+                {"source": source, "label": label, "weight": weight}
+                for source, label, weight in PREFERENCE_SOURCE_WEIGHTS
+            ],
         }
 
     @application.get("/api/preferences")
@@ -488,7 +502,20 @@ def create_app() -> FastAPI:
             "has_seed_preferences": seeds.has_signals(),
             "imported_username": imported.username if imported else None,
             "imported_count": len(imported.repositories) if imported else 0,
+            "github_token_configured": token_configured(),
         }
+
+    @application.get("/api/search/parse")
+    def parse_search(search: str = Query(default="")) -> dict[str, object]:
+        """
+        resolve a search query without contacting GitHub
+
+        This is the same parser the recommendations endpoint uses, exposed so an interface can
+        show which language a query selects before the search runs.
+        :param search: raw search query
+        :returns: resolved language, whether it was named explicitly, and the topical terms
+        """
+        return _search_data(parse_search_query(search))
 
     @application.get("/api/recommendations")
     def get_recommendations(
@@ -516,8 +543,9 @@ def create_app() -> FastAPI:
         imported = storage.load_imported_profile()
         interested = storage.load_interested_repositories()
         profile = build_profile(starred, storage.load_seed_preferences(), imported, interested)
+        resolved = _search_data(parsed_search)
         if not profile.languages and not profile.topics and not profile.keywords:
-            return {"recommendations": [], "message": "No preference signals are available yet"}
+            return {"recommendations": [], "message": "No preference signals are available yet", "search": resolved}
         try:
             client = GitHubClient()
             owner = client.get_authenticated_user()
@@ -534,7 +562,11 @@ def create_app() -> FastAPI:
             and (maximum is None or recommendation.repository.stars <= maximum)
         ][:limit]
         message = None if filtered else "No eligible recommendations found"
-        return {"recommendations": [_recommendation_data(item) for item in filtered], "message": message}
+        return {
+            "recommendations": [_recommendation_data(item) for item in filtered],
+            "message": message,
+            "search": resolved,
+        }
 
     @application.get("/api/contributions")
     def get_contributions(

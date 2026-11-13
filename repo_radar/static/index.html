@@ -3,60 +3,442 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Repo Radar</title>
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#100f0e">
+  <title>Overview | Repo Radar</title>
+  <link rel="icon" href="/static/images/mark.svg" type="image/svg+xml">
+  <link rel="preload" href="/static/fonts/Geist-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/tokens.css">
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand"><img class="brand-logo" src="/static/images/logo.png" alt=""><span class="brand-copy"><strong>Repo Radar</strong><span>a thoughtful corner of GitHub</span></span></div>
-    <nav><a href="#discover">Discover</a><a href="#contribute">Contribute</a><a href="#saved">Saved</a><a href="#starred">Starred</a><a href="#profile">Profile</a><a href="#feedback">Feedback</a><a href="#preferences">Preferences</a></nav>
-  </header>
-  <main>
-    <section class="welcome">
-      <div><p class="eyebrow">Your taste, made visible</p><h1>Find projects worth lingering over.</h1><p>Repo Radar learns what pulls you in, then brings back repositories that feel relevant, surprising, and genuinely useful.</p></div>
-      <p class="welcome-note">A quieter way to explore open source, shaped by what you already care about.</p>
-    </section>
-    <p id="message" class="message" role="status"></p>
-    <section id="status" class="panel compact"><h2>Status</h2><div id="status-content">Loading local state...</div><button id="sync">Sync starred repositories</button></section>
-    <section id="discover" class="panel">
-      <div class="section-heading"><div><p class="eyebrow">Picked for you</p><h2>Discover repositories</h2><p class="section-intro">A fresh batch of projects, balanced for relevance and a little serendipity.</p></div><button id="refresh">Find something good</button></div>
-      <div class="filters"><label>Search<input id="filter-search" placeholder="python automation"></label><label>Minimum stars<input id="filter-min" type="number" min="0" value="0"></label><label>Maximum stars<input id="filter-max" type="number" min="0"></label><label>Results<input id="filter-limit" type="number" min="1" max="50" value="10"></label><label class="checkbox"><input id="filter-gems" type="checkbox"> Hidden gems</label></div>
-      <div id="recommendations" class="cards"><div class="recommendation-empty"><p class="empty-title">Your next favorite project might be nearby.</p><p class="empty">Select “Find something good” and Repo Radar will search for repositories shaped by your profile.</p></div></div>
-    </section>
-    <section id="contribute" class="panel">
-      <div class="section-heading"><div><p class="eyebrow">Give something back</p><h2>Contribution opportunities</h2><p class="section-intro">Open issues across GitHub ranked by how well they match your profile, including repositories you have not discovered yet.</p></div><button id="refresh-contributions">Find an issue to work on</button></div>
-      <div class="filters">
-        <fieldset class="scope-choice"><legend>Scope</legend><label class="checkbox"><input type="radio" name="contribution-scope" value="discover" checked> Discover best opportunities</label><label class="checkbox"><input type="radio" name="contribution-scope" value="saved_starred"> Saved &amp; starred only</label></fieldset>
-        <details id="contribution-labels" class="dropdown">
-          <summary><span class="dropdown-title">Issue type</span><span id="contribution-label-value" class="dropdown-value">Any type</span></summary>
-          <div class="dropdown-panel"><label class="checkbox"><input type="checkbox" name="contribution-label" value="bug"> Bug</label><label class="checkbox"><input type="checkbox" name="contribution-label" value="documentation"> Documentation</label><label class="checkbox"><input type="checkbox" name="contribution-label" value="enhancement"> Enhancement</label><label class="checkbox"><input type="checkbox" name="contribution-label" value="accessibility"> Accessibility</label></div>
-        </details>
-        <label>Results<input id="contribution-limit" type="number" min="1" max="50" value="10"></label><label class="checkbox"><input id="contribution-unassigned" type="checkbox"> Unassigned only</label><label class="checkbox"><input id="contribution-friendly" type="checkbox"> Contributor-friendly only</label>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <noscript><p class="noscript">Repo Radar's local interface needs JavaScript. The command line works without it: run <code>python -m repo_radar --help</code>.</p></noscript>
+
+  <div class="app">
+    <header class="mobile-bar">
+      <button id="nav-toggle" class="button button--ghost button--icon" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="Open navigation">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#menu"/></svg>
+      </button>
+      <a class="brand brand--compact" href="#overview" aria-label="Repo Radar overview">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/images/mark.svg#mark"/></svg>
+        <span class="brand-name">Repo Radar</span>
+      </a>
+      <span id="mobile-status" class="status-dot" data-tone="neutral" role="img" aria-label="Checking GitHub status"></span>
+    </header>
+
+    <div id="nav-scrim" class="scrim" hidden></div>
+
+    <aside id="sidebar" class="sidebar" aria-label="Primary">
+      <div class="sidebar-head">
+        <a class="brand" href="#overview" aria-label="Repo Radar overview">
+          <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/images/mark.svg#mark"/></svg>
+          <span class="brand-name">Repo Radar</span>
+        </a>
+        <button id="nav-close" class="button button--ghost button--icon sidebar-close" type="button" aria-label="Close navigation">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#x"/></svg>
+        </button>
       </div>
-      <p id="contribution-warning" class="inline-message" role="status" aria-live="polite"></p>
-      <div id="contributions" class="cards"><div class="recommendation-empty"><p class="empty-title">There is probably an issue here with your name on it.</p><p class="empty">Select “Find an issue to work on” and Repo Radar will search GitHub for open issues shaped by your profile.</p></div></div>
-    </section>
-    <section id="saved" class="panel">
-      <div class="section-heading"><div><p class="eyebrow">Come back anytime</p><h2>Saved for later</h2><p class="section-intro">Repositories you marked as interested also help shape what Repo Radar recommends next.</p></div><div class="section-actions"><button id="star-all-saved">Star all on GitHub</button><button id="clear-saved" class="danger">Remove all saved</button><button id="reload-saved" class="secondary">Refresh saved</button></div></div>
-      <div id="interested-repositories" class="saved-list"><p class="empty">Nothing saved yet. Mark a recommendation as interested to keep it here.</p></div>
-    </section>
-    <section id="starred" class="panel">
-      <div class="section-heading"><div><p class="eyebrow">Your GitHub library</p><h2>Already starred</h2><p class="section-intro">A local view of the repositories returned by your latest GitHub sync.</p></div><button id="reload-starred" class="secondary">Refresh view</button></div>
-      <div id="starred-repositories" class="library-list"><p class="empty">No starred repositories are cached yet.</p></div>
-    </section>
-    <section id="profile" class="panel"><div class="section-heading"><div><p class="eyebrow">What catches your eye</p><h2>Your taste profile</h2><p class="section-intro">The languages, topics, and ideas currently guiding your recommendations.</p></div><button id="reload-profile" class="secondary">Refresh profile</button></div><div id="profile-summary"></div></section>
-    <section id="feedback" class="panel">
-      <div class="section-heading"><div><p class="eyebrow">Change your mind</p><h2>Feedback history</h2><p class="section-intro">Review blocked and dismissed repositories, then clear a record to make it eligible for discovery again.</p></div><button id="reload-feedback" class="secondary">Refresh feedback</button></div>
-      <div id="feedback-records" class="feedback-groups"><p class="empty">No feedback records yet.</p></div>
-    </section>
-    <section id="preferences" class="panel">
-      <p class="eyebrow">Make it yours</p><h2>Shape your starting profile</h2><p class="section-intro">Bring in your public work, then add a few interests you would love to see more of.</p>
-      <form id="import-form" class="inline-form"><label>GitHub username<input id="import-username" required placeholder="quangshuynh"></label><button>Import from GitProfileLens</button></form>
-      <p id="import-message" class="inline-message" role="status" aria-live="polite"></p>
-      <hr>
-      <form id="preferences-form"><label>Languages<input id="languages" placeholder="Python, TypeScript"></label><label>Topics<input id="topics" placeholder="developer-tools, backend, automation"></label><label>Keywords<input id="keywords" placeholder="cli, api, productivity"></label><button>Save preferences</button></form>
-    </section>
-  </main>
+
+      <nav class="nav" aria-label="Sections">
+        <ul>
+          <li><a class="nav-link" href="#overview" data-route="overview"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#layout-dashboard"/></svg><span class="nav-label">Overview</span></a></li>
+          <li><a class="nav-link" href="#discover" data-route="discover"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#compass"/></svg><span class="nav-label">Discover</span></a></li>
+          <li><a class="nav-link" href="#contribute" data-route="contribute"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#circle-dot"/></svg><span class="nav-label">Contribute</span></a></li>
+          <li><a class="nav-link" href="#library" data-route="library"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#library"/></svg><span class="nav-label">Library</span><span class="nav-count" data-count="library"></span></a></li>
+          <li><a class="nav-link" href="#preferences" data-route="preferences"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#sliders-horizontal"/></svg><span class="nav-label">Preferences</span></a></li>
+          <li><a class="nav-link" href="#history" data-route="history"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#history"/></svg><span class="nav-label">History</span><span class="nav-count" data-count="history"></span></a></li>
+        </ul>
+      </nav>
+
+      <section class="system" aria-labelledby="system-title">
+        <h2 id="system-title" class="visually-hidden">Connection status</h2>
+        <div class="system-row">
+          <span id="github-dot" class="status-dot" data-tone="neutral" aria-hidden="true"></span>
+          <div class="system-copy">
+            <p id="github-state" class="system-state">Checking GitHub</p>
+            <p id="github-detail" class="system-detail"></p>
+          </div>
+        </div>
+        <button id="sync" class="button button--secondary button--sm system-sync" type="button" aria-label="Sync stars from GitHub" data-tooltip="Sync stars from GitHub">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#refresh-cw"/></svg>
+          <span class="button-label">Sync stars</span>
+        </button>
+        <div class="system-row system-row--local">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#hard-drive"/></svg>
+          <p id="local-state" class="system-detail">Local data on this machine</p>
+        </div>
+      </section>
+    </aside>
+
+    <main id="main" class="main" tabindex="-1">
+      <!-- Overview -->
+      <section class="view" data-view="overview" aria-labelledby="overview-title">
+        <header class="page-head">
+          <div class="page-heading">
+            <h1 id="overview-title" tabindex="-1">Overview</h1>
+            <p id="overview-lede" class="page-lede">Repositories and open issues ranked against what you already care about. Everything here is read from this machine.</p>
+          </div>
+        </header>
+
+        <div id="overview-setup"></div>
+
+        <div class="launch">
+          <article class="launch-item">
+            <svg class="icon launch-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#compass"/></svg>
+            <h2>Discover repositories</h2>
+            <p>Search one language at a time and get repositories ranked by how well they fit your profile.</p>
+            <a class="button button--primary" href="#discover"><span class="button-label">Open Discover</span></a>
+          </article>
+          <article class="launch-item">
+            <svg class="icon launch-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#circle-dot"/></svg>
+            <h2>Find an issue to work on</h2>
+            <p>Rank open GitHub issues by relevance, contributor signals, freshness, and how clearly the work is scoped.</p>
+            <a class="button button--primary" href="#contribute"><span class="button-label">Open Contribute</span></a>
+          </article>
+        </div>
+
+        <section class="block" aria-labelledby="overview-local-title">
+          <div class="block-head">
+            <h2 id="overview-local-title">On this machine</h2>
+          </div>
+          <dl id="overview-stats" class="stats" aria-busy="true"></dl>
+        </section>
+
+        <div class="overview-grid">
+          <section class="block" aria-labelledby="overview-latest-title">
+            <div class="block-head">
+              <h2 id="overview-latest-title">Latest results</h2>
+              <p class="block-note">From searches in this browser session</p>
+            </div>
+            <div id="overview-latest" class="overview-latest"></div>
+          </section>
+          <div class="overview-side">
+            <section class="block" aria-labelledby="overview-profile-title">
+              <div class="block-head">
+                <h2 id="overview-profile-title">Profile</h2>
+                <a class="text-link" href="#preferences">Edit preferences</a>
+              </div>
+              <div id="overview-profile"></div>
+            </section>
+            <section class="block" aria-labelledby="overview-feedback-title">
+              <div class="block-head">
+                <h2 id="overview-feedback-title">Feedback</h2>
+                <a class="text-link" href="#history">Open history</a>
+              </div>
+              <div id="overview-feedback"></div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <!-- Discover -->
+      <section class="view" data-view="discover" aria-labelledby="discover-title" hidden>
+        <header class="page-head">
+          <div class="page-heading">
+            <h1 id="discover-title" tabindex="-1">Discover</h1>
+            <p class="page-lede">Repositories ranked against your profile. Every search stays inside one programming language.</p>
+          </div>
+        </header>
+
+        <form id="discover-form" class="search-panel" role="search" aria-label="Repository search" novalidate>
+          <div class="search-row">
+            <label class="visually-hidden" for="filter-search">Search repositories</label>
+            <div class="search-input">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#search"/></svg>
+              <input id="filter-search" class="input input--lg" type="search" name="search" autocomplete="off" spellcheck="false" placeholder="Try typescript cli or automation" aria-describedby="search-resolution search-help">
+              <kbd class="search-kbd" aria-hidden="true">/</kbd>
+            </div>
+            <button id="refresh" class="button button--primary button--lg" type="submit">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#search"/></svg>
+              <span class="button-label">Search</span>
+            </button>
+          </div>
+          <p id="search-resolution" class="resolution"></p>
+          <p id="search-help" class="visually-hidden">Name a language anywhere in the query, such as rust or typescript. Without one, the search uses Python. Press slash to focus this field.</p>
+
+          <details id="discover-filters" class="filters-disclosure">
+            <summary class="filters-summary">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#list-filter"/></svg>
+              <span>Filters</span>
+              <span id="discover-filter-count" class="filters-count"></span>
+              <svg class="icon filters-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#chevron-down"/></svg>
+            </summary>
+            <div class="filters">
+              <div class="field field--narrow">
+                <label class="field-label" for="filter-min">Minimum stars</label>
+                <input id="filter-min" class="input" type="number" name="min_stars" min="0" step="1" inputmode="numeric" value="0" aria-describedby="filter-min-error">
+                <p id="filter-min-error" class="field-error" hidden></p>
+              </div>
+              <div class="field field--narrow">
+                <label class="field-label" for="filter-max">Maximum stars</label>
+                <input id="filter-max" class="input" type="number" name="max_stars" min="0" step="1" inputmode="numeric" placeholder="No limit" aria-describedby="filter-max-error">
+                <p id="filter-max-error" class="field-error" hidden></p>
+              </div>
+              <div class="field field--narrow">
+                <label class="field-label" for="filter-limit">Results</label>
+                <input id="filter-limit" class="input" type="number" name="limit" min="1" max="50" step="1" inputmode="numeric" value="10" aria-describedby="filter-limit-error">
+                <p id="filter-limit-error" class="field-error" hidden></p>
+              </div>
+              <label class="check">
+                <input id="filter-gems" type="checkbox" name="hidden_gems">
+                <span class="check-copy"><span class="check-label">Hidden gems</span><span class="check-hint">Up to 1,000 stars unless you set a maximum</span></span>
+              </label>
+              <button id="discover-reset" class="button button--ghost button--sm filters-reset" type="button">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#rotate-ccw"/></svg>
+                <span class="button-label">Reset filters</span>
+              </button>
+            </div>
+          </details>
+        </form>
+
+        <div id="discover-results" class="results" aria-busy="false"></div>
+      </section>
+
+      <!-- Contribute -->
+      <section class="view" data-view="contribute" aria-labelledby="contribute-title" hidden>
+        <header class="page-head">
+          <div class="page-heading">
+            <h1 id="contribute-title" tabindex="-1">Contribute</h1>
+            <p class="page-lede">Open issues ranked by fit with your profile, explicit invitations to contribute, freshness, and how clearly the work is scoped.</p>
+          </div>
+        </header>
+
+        <form id="contribute-form" class="search-panel" aria-label="Issue search" novalidate>
+          <fieldset class="field-group">
+            <legend class="field-label">Where to look</legend>
+            <div class="segmented" id="contribution-scope">
+              <label class="segment">
+                <input type="radio" name="contribution-scope" value="discover" checked>
+                <span class="segment-copy"><span class="segment-label">Across GitHub</span><span class="segment-hint">Includes repositories you have not seen yet</span></span>
+              </label>
+              <label class="segment">
+                <input type="radio" name="contribution-scope" value="saved_starred">
+                <span class="segment-copy"><span class="segment-label">Saved and starred</span><span class="segment-hint">Only repositories in your Library</span></span>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="field-group">
+            <legend class="field-label">Issue type <span class="legend-hint">Any type when none is selected</span></legend>
+            <div class="chip-options" id="contribution-labels">
+              <label class="chip-option"><input type="checkbox" name="contribution-label" value="bug"><span>Bug</span></label>
+              <label class="chip-option"><input type="checkbox" name="contribution-label" value="documentation"><span>Documentation</span></label>
+              <label class="chip-option"><input type="checkbox" name="contribution-label" value="enhancement"><span>Enhancement</span></label>
+              <label class="chip-option"><input type="checkbox" name="contribution-label" value="accessibility"><span>Accessibility</span></label>
+            </div>
+          </fieldset>
+
+          <div class="contribute-controls">
+            <label class="check">
+              <input id="contribution-friendly" type="checkbox" name="contributor_friendly">
+              <span class="check-copy"><span class="check-label">Contributor-friendly only</span><span class="check-hint">Issues the project labeled as open to outside contributors</span></span>
+            </label>
+            <label class="check">
+              <input id="contribution-unassigned" type="checkbox" name="unassigned_only">
+              <span class="check-copy"><span class="check-label">Unassigned only</span><span class="check-hint">Skip issues someone is already assigned to</span></span>
+            </label>
+            <div class="field field--narrow">
+              <label class="field-label" for="contribution-limit">Results</label>
+              <input id="contribution-limit" class="input" type="number" min="1" max="50" step="1" inputmode="numeric" value="10" aria-describedby="contribution-limit-error">
+              <p id="contribution-limit-error" class="field-error" hidden></p>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button id="refresh-contributions" class="button button--primary button--lg" type="submit">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#search"/></svg>
+              <span class="button-label">Find issues</span>
+            </button>
+            <p id="contribution-filter-summary" class="filter-summary"></p>
+            <button id="contribute-reset" class="button button--ghost button--sm" type="button">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#rotate-ccw"/></svg>
+              <span class="button-label">Reset filters</span>
+            </button>
+          </div>
+        </form>
+
+        <div id="contribute-results" class="results" aria-busy="false"></div>
+      </section>
+
+      <!-- Library -->
+      <section class="view" data-view="library" aria-labelledby="library-title" hidden>
+        <header class="page-head">
+          <div class="page-heading">
+            <h1 id="library-title" tabindex="-1">Library</h1>
+            <p class="page-lede">Repositories you saved in Repo Radar, and the starred repositories from your latest GitHub sync.</p>
+          </div>
+        </header>
+
+        <div class="tabs" role="tablist" aria-label="Library collections">
+          <button id="library-tab-saved" class="tab" type="button" role="tab" aria-selected="true" aria-controls="library-panel-saved" data-tab="saved">Saved <span class="tab-count" data-count="saved">0</span></button>
+          <button id="library-tab-starred" class="tab" type="button" role="tab" aria-selected="false" aria-controls="library-panel-starred" data-tab="starred" tabindex="-1">Starred <span class="tab-count" data-count="starred">0</span></button>
+        </div>
+
+        <div class="toolbar">
+          <div class="field field--grow">
+            <label class="visually-hidden" for="library-filter">Filter repositories</label>
+            <div class="search-input search-input--sm">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#search"/></svg>
+              <input id="library-filter" class="input" type="search" autocomplete="off" spellcheck="false" placeholder="Filter by name, language, or topic">
+            </div>
+          </div>
+          <div class="field field--inline">
+            <label class="field-label" for="library-sort">Sort</label>
+            <select id="library-sort" class="input select"></select>
+          </div>
+        </div>
+
+        <div id="library-panel-saved" class="tab-panel" role="tabpanel" aria-labelledby="library-tab-saved" tabindex="0">
+          <div class="panel-bar">
+            <p class="panel-note">Saved repositories count toward your profile and are left out of new recommendations.</p>
+            <div class="panel-actions">
+              <button id="star-all-saved" class="button button--secondary button--sm" type="button">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#star"/></svg>
+                <span class="button-label">Star all on GitHub</span>
+              </button>
+              <button id="clear-saved" class="button button--danger button--sm" type="button">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#trash-2"/></svg>
+                <span class="button-label">Remove all</span>
+              </button>
+            </div>
+          </div>
+          <div id="interested-repositories" class="collection"></div>
+        </div>
+
+        <div id="library-panel-starred" class="tab-panel" role="tabpanel" aria-labelledby="library-tab-starred" tabindex="0" hidden>
+          <div class="panel-bar">
+            <p id="starred-note" class="panel-note">Read from your latest GitHub sync. Use Sync stars to refresh it.</p>
+          </div>
+          <div id="starred-repositories" class="collection"></div>
+        </div>
+      </section>
+
+      <!-- Preferences -->
+      <section class="view" data-view="preferences" aria-labelledby="preferences-title" hidden>
+        <header class="page-head">
+          <div class="page-heading">
+            <h1 id="preferences-title" tabindex="-1">Preferences</h1>
+            <p class="page-lede">Your profile combines several sources. Each one adds language, topic, and keyword signals at a fixed weight.</p>
+          </div>
+        </header>
+
+        <div class="settings">
+          <section class="setting" aria-labelledby="interests-title">
+            <div class="setting-intro">
+              <h2 id="interests-title">Manual interests</h2>
+              <p>Things you want more of, even if your stars don't show it yet. Separate values with commas.</p>
+            </div>
+            <form id="preferences-form" class="setting-body" novalidate>
+              <div class="field">
+                <label class="field-label" for="languages">Languages</label>
+                <input id="languages" class="input" autocomplete="off" placeholder="Python, TypeScript">
+              </div>
+              <div class="field">
+                <label class="field-label" for="topics">Topics</label>
+                <input id="topics" class="input" autocomplete="off" placeholder="developer-tools, automation">
+                <p class="field-hint">GitHub topic names, stored in lowercase</p>
+              </div>
+              <div class="field">
+                <label class="field-label" for="keywords">Keywords</label>
+                <input id="keywords" class="input" autocomplete="off" placeholder="cli, api, terminal">
+                <p class="field-hint">Words matched against repository descriptions, stored in lowercase</p>
+              </div>
+              <div class="form-actions">
+                <button id="save-preferences" class="button button--primary" type="submit">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#check"/></svg>
+                  <span class="button-label">Save interests</span>
+                </button>
+                <p id="preferences-state" class="form-state" role="status"></p>
+              </div>
+            </form>
+          </section>
+
+          <section class="setting" aria-labelledby="import-title">
+            <div class="setting-intro">
+              <h2 id="import-title">GitProfileLens import</h2>
+              <p>Bring in the languages and topics of public repositories you own. Pinned repositories count more; archived repositories and forks are ignored.</p>
+            </div>
+            <div class="setting-body">
+              <p id="import-current" class="setting-current"></p>
+              <form id="import-form" class="inline-form" novalidate>
+                <div class="field field--grow">
+                  <label class="field-label" for="import-username">GitHub username</label>
+                  <input id="import-username" class="input" required autocomplete="off" spellcheck="false" placeholder="octocat" aria-describedby="import-username-error">
+                  <p id="import-username-error" class="field-error" hidden></p>
+                </div>
+                <button id="import-submit" class="button button--secondary" type="submit">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#download"/></svg>
+                  <span class="button-label">Import profile</span>
+                </button>
+              </form>
+              <p id="import-message" class="form-state" role="status" aria-live="polite"></p>
+            </div>
+          </section>
+
+          <section class="setting" aria-labelledby="sources-title">
+            <div class="setting-intro">
+              <h2 id="sources-title">Source weights</h2>
+              <p>How much one signal from each source adds before the profile is normalized against its strongest signal.</p>
+            </div>
+            <div class="setting-body">
+              <table class="weights">
+                <caption class="visually-hidden">Preference source weights</caption>
+                <thead><tr><th scope="col">Source</th><th scope="col" class="numeric">Weight</th><th scope="col" class="numeric">On this machine</th></tr></thead>
+                <tbody id="source-weights"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="setting setting--wide" aria-labelledby="profile-title">
+            <div class="setting-intro">
+              <h2 id="profile-title">Current profile</h2>
+              <p>The strongest signals right now, relative to the strongest one in each group.</p>
+              <button id="reload-profile" class="button button--ghost button--sm" type="button">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/static/icons.svg#refresh-cw"/></svg>
+                <span class="button-label">Recalculate</span>
+              </button>
+            </div>
+            <div id="profile-summary" class="setting-body"></div>
+          </section>
+        </div>
+      </section>
+
+      <!-- Feedback history -->
+      <section class="view" data-view="history" aria-labelledby="history-title" hidden>
+        <header class="page-head">
+          <div class="page-heading">
+            <h1 id="history-title" tabindex="-1">Feedback history</h1>
+            <p class="page-lede">Every repository you have saved, starred, dismissed, or blocked. Clearing a record changes only Repo Radar's local data.</p>
+          </div>
+        </header>
+
+        <fieldset class="field-group">
+          <legend class="visually-hidden">Show records</legend>
+          <div id="history-filter" class="segmented segmented--compact"></div>
+        </fieldset>
+
+        <div id="feedback-records" class="history"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toasts" class="toasts" aria-live="polite" aria-relevant="additions"></div>
+  <p id="announcer" class="visually-hidden" role="status" aria-live="polite"></p>
+
+  <dialog id="confirm-dialog" class="dialog" aria-labelledby="confirm-title" aria-describedby="confirm-body">
+    <form method="dialog" class="dialog-content">
+      <h2 id="confirm-title" class="dialog-title"></h2>
+      <p id="confirm-body" class="dialog-body"></p>
+      <ul id="confirm-details" class="dialog-details" hidden></ul>
+      <div class="dialog-actions">
+        <button id="confirm-cancel" class="button button--secondary" type="button">Cancel</button>
+        <button id="confirm-accept" class="button button--primary" type="button"></button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/static/ui.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>
