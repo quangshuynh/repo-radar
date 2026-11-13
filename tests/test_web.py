@@ -954,3 +954,20 @@ def test_profile_reports_the_weights_build_profile_applies(tmp_path, monkeypatch
         "owned": profile_module.OWNED_REPOSITORY_WEIGHT,
     }
 
+
+def test_frontend_loads_only_bundled_assets() -> None:
+    """
+    the interface requests nothing from third parties, so it works offline and leaks no usage
+    :returns: nothing
+    """
+    markup = (STATIC_DIRECTORY / "index.html").read_text(encoding="utf-8")
+    loaded = re.findall(r'(?:src|href)="([^"#]+)', markup)
+    assert loaded, "expected the page to load local assets"
+    assert all(path.startswith("/static/") for path in loaded), loaded
+    for stylesheet in ("tokens.css", "styles.css"):
+        css = (STATIC_DIRECTORY / stylesheet).read_text(encoding="utf-8")
+        assert "@import" not in css
+        assert all(url.startswith("/static/") for url in re.findall(r'url\("?([^")]+)', css))
+    client = TestClient(app)
+    for asset in ["icons.svg", "fonts/Geist-latin.woff2", "fonts/GeistMono-latin.woff2", "images/mark.svg", "ui.js"]:
+        assert client.get(f"/static/{asset}").status_code == 200, asset
