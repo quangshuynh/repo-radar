@@ -31,12 +31,17 @@ def recommendation_requests(page) -> list[dict[str, list[str]]]:
     :returns: list that receives parsed query parameters
     """
     requests: list[dict[str, list[str]]] = []
-    page.on(
-        "request",
-        lambda request: requests.append(parse_qs(urlparse(request.url).query, keep_blank_values=True))
-        if "/api/recommendations" in request.url
-        else None,
-    )
+
+    def record(request) -> None:
+        """
+        keep the query parameters of one matching request
+        :param request: Playwright request
+        :returns: nothing
+        """
+        if "/api/recommendations" in request.url:
+            requests.append(parse_qs(urlparse(request.url).query, keep_blank_values=True))
+
+    page.on("request", record)
     return requests
 
 

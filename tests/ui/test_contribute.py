@@ -16,12 +16,17 @@ def contribution_requests(page) -> list[dict[str, list[str]]]:
     :returns: list that receives parsed query parameters
     """
     requests: list[dict[str, list[str]]] = []
-    page.on(
-        "request",
-        lambda request: requests.append(parse_qs(urlparse(request.url).query))
-        if "/api/contributions" in request.url
-        else None,
-    )
+
+    def record(request) -> None:
+        """
+        keep the query parameters of one matching request
+        :param request: Playwright request
+        :returns: nothing
+        """
+        if "/api/contributions" in request.url:
+            requests.append(parse_qs(urlparse(request.url).query))
+
+    page.on("request", record)
     return requests
 
 
