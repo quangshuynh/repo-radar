@@ -507,6 +507,9 @@ def test_contributions_api_ranks_issues_from_local_repositories(tmp_path, monkey
     assert contributions[0]["score"] > contributions[1]["score"]
     assert any("Label: good first issue" in reason for reason in contributions[0]["reasons"])
     assert contributions[0]["scope_signal"] in {"Focused", "Unclear", "Needs discussion"}
+    # grouped evidence restates the same reasons by signal for the interface
+    assert "Label: good first issue" in contributions[0]["evidence"]["friendliness"]
+    assert contributions[1]["evidence"]["assignment"] == ["Assigned to 1, so it may already be in progress"]
 
 
 def test_contributions_api_needs_local_repository_evidence(tmp_path, monkeypatch) -> None:
@@ -852,3 +855,102 @@ def test_frontend_offers_exactly_the_supported_issue_categories() -> None:
     assert all(label not in markup for label in CONTRIBUTION_INVITATION_LABELS)
     assert 'parameters.append("label"' in script
     assert "contributor_friendly:" in script
+
+
+def test_search_parse_api_reports_the_language_a_query_selects(tmp_path, monkeypatch) -> None:
+    """
+    the interface can preview search resolution through the same parser discovery uses
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+    client = TestClient(app)
+
+    assert client.get("/api/search/parse").json() == {"language": "Python", "explicit_language": False, "terms": []}
+    assert client.get("/api/search/parse", params={"search": "typescript developer tools"}).json() == {
+        "language": "TypeScript",
+        "explicit_language": True,
+        "terms": ["developer", "tools"],
+    }
+    # a common word only names a language in the leading position
+    assert client.get("/api/search/parse", params={"search": "libraries that go fast"}).json()["language"] == "Python"
+
+
+def test_recommendations_echo_the_resolved_search(tmp_path, monkeypatch) -> None:
+    """
+    a recommendation response states the language its candidates were constrained to
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+    empty = TestClient(app).get("/api/recommendations", params={"search": "rust web"}).json()
+    assert empty["recommendations"] == []
+    assert empty["search"] == {"language": "Rust", "explicit_language": True, "terms": ["web"]}
+
+    Storage(tmp_path).save_seed_preferences(SeedPreferences(["Go"], ["api"], []))
+
+    class FakeGitHubClient:
+        """mock GitHub client returning one Go repository"""
+
+        def get_authenticated_user(self) -> str:
+            """
+            return the mocked authenticated login
+            :returns: authenticated login
+            """
+            return "me"
+
+        def search_repositories(self, query: str, limit: int) -> list[Repository]:
+            """
+            return one Go repository
+            :param query: generated search query
+            :param limit: requested result limit
+            :returns: fake search results
+            """
+            return [Repository("gopher/api", "go api toolkit", "Go", ["api"], 400, owner="gopher")]
+
+    monkeypatch.setattr("repo_radar.web.GitHubClient", FakeGitHubClient)
+    payload = TestClient(app).get("/api/recommendations", params={"search": "go api"}).json()
+    assert [item["full_name"] for item in payload["recommendations"]] == ["gopher/api"]
+    assert payload["search"] == {"language": "Go", "explicit_language": True, "terms": ["api"]}
+
+
+def test_status_reports_token_presence_without_the_token(tmp_path, monkeypatch) -> None:
+    """
+    status says whether GitHub actions can be attempted and never returns the credential
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+    monkeypatch.setattr("repo_radar.github_client.load_dotenv", lambda override=False: False)
+    monkeypatch.setenv("GITHUB_TOKEN", "ghp_status_secret_value")
+    configured = TestClient(app).get("/api/status")
+    assert configured.json()["github_token_configured"] is True
+    assert "ghp_status_secret_value" not in configured.text
+
+    monkeypatch.delenv("GITHUB_TOKEN")
+    assert TestClient(app).get("/api/status").json()["github_token_configured"] is False
+
+
+def test_profile_reports_the_weights_build_profile_applies(tmp_path, monkeypatch) -> None:
+    """
+    displayed source weights come from the profile constants rather than a second copy
+    :param tmp_path: pytest temporary directory
+    :param monkeypatch: pytest monkeypatch fixture
+    :returns: nothing
+    """
+    from repo_radar import profile as profile_module
+
+    monkeypatch.setenv("REPO_RADAR_DATA_DIR", str(tmp_path))
+    weights = {item["source"]: item["weight"] for item in TestClient(app).get("/api/profile").json()["source_weights"]}
+
+    assert weights == {
+        "starred": profile_module.STARRED_REPOSITORY_WEIGHT,
+        "pinned": profile_module.PINNED_REPOSITORY_WEIGHT,
+        "interested": profile_module.INTERESTED_REPOSITORY_WEIGHT,
+        "seed": profile_module.SEED_SIGNAL_WEIGHT,
+        "owned": profile_module.OWNED_REPOSITORY_WEIGHT,
+    }
+
